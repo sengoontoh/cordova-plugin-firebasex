@@ -373,6 +373,14 @@ exports.setDocumentInFirestoreCollection = function (documentId, document, colle
     exec(success, error, "FirebasePlugin", "setDocumentInFirestoreCollection", [documentId.toString(), document, collection]);
 };
 
+exports.mergeDocumentInFirestoreCollection = function (documentId, document, collection, success, error) {
+    if(typeof documentId !== 'string' && typeof documentId !== 'number') return error("'documentId' must be a string or number specifying the Firestore document identifier");
+    if(typeof collection !== 'string') return error("'collection' must be a string specifying the Firestore collection name");
+    if(typeof document !== 'object' || typeof document.length === 'number') return error("'document' must be an object specifying record data");
+
+    exec(success, error, "FirebasePlugin", "mergeDocumentInFirestoreCollection", [documentId.toString(), document, collection]);
+};
+
 exports.updateDocumentInFirestoreCollection = function (documentId, document, collection, success, error) {
     if(typeof documentId !== 'string' && typeof documentId !== 'number') return error("'documentId' must be a string or number specifying the Firestore document identifier");
     if(typeof collection !== 'string') return error("'collection' must be a string specifying the Firestore collection name");

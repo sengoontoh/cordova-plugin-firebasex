@@ -339,6 +339,8 @@ public class FirebasePlugin extends CordovaPlugin {
                 this.addDocumentToFirestoreCollection(args, callbackContext);
             } else if (action.equals("setDocumentInFirestoreCollection")) {
                 this.setDocumentInFirestoreCollection(args, callbackContext);
+            } else if (action.equals("mergeDocumentInFirestoreCollection")) {
+                this.mergeDocumentInFirestoreCollection(args, callbackContext);
             } else if (action.equals("updateDocumentInFirestoreCollection")) {
                 this.updateDocumentInFirestoreCollection(args, callbackContext);
             } else if (action.equals("deleteDocumentFromFirestoreCollection")) {
@@ -2078,6 +2080,35 @@ public class FirebasePlugin extends CordovaPlugin {
 
                     firestore.collection(collection).document(documentId)
                             .set(jsonStringToMap(jsonDoc))
+                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    callbackContext.success();
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    handleExceptionWithContext(e, callbackContext);
+                                }
+                            });
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
+
+    private void mergeDocumentInFirestoreCollection(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    String documentId = args.getString(0);
+                    String jsonDoc = args.getString(1);
+                    String collection = args.getString(2);
+
+                    firestore.collection(collection).document(documentId)
+                            .set(jsonStringToMap(jsonDoc), SetOptions.merge())
                             .addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {

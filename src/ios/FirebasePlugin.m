@@ -1538,6 +1538,22 @@ static NSMutableDictionary* firestoreListeners;
     }];
 }
 
+- (void)mergeDocumentInFirestoreCollection:(CDVInvokedUrlCommand*)command {
+    [self.commandDelegate runInBackground:^{
+        @try {
+            NSString* documentId = [command.arguments objectAtIndex:0];
+            NSDictionary* document = [command.arguments objectAtIndex:1];
+            NSString* collection = [command.arguments objectAtIndex:2];
+
+            [[[firestore collectionWithPath:collection] documentWithPath:documentId] setData:document merge:YES completion:^(NSError * _Nullable error) {
+                [self handleEmptyResultWithPotentialError:error command:command];
+            }];
+        }@catch (NSException *exception) {
+            [self handlePluginExceptionWithContext:exception :command];
+        }
+    }];
+}
+
 - (void)updateDocumentInFirestoreCollection:(CDVInvokedUrlCommand*)command {
     [self.commandDelegate runInBackground:^{
         @try {

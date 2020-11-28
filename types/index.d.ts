@@ -309,6 +309,13 @@ export interface FirebasePlugin {
         success: () => void,
         error: (err: string) => void
     ): void
+    mergeDocumentInFirestoreCollection(
+        documentId: string,
+        document: object,
+        collection: string,
+        success: () => void,
+        error: (err: string) => void
+    ): void
     updateDocumentInFirestoreCollection(
         documentId: string,
         document: object,

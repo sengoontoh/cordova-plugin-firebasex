@@ -92,6 +92,7 @@
 // Firestore
 - (void)addDocumentToFirestoreCollection:(CDVInvokedUrlCommand*)command;
 - (void)setDocumentInFirestoreCollection:(CDVInvokedUrlCommand*)command;
+- (void)mergeDocumentInFirestoreCollection:(CDVInvokedUrlCommand*)command;
 - (void)updateDocumentInFirestoreCollection:(CDVInvokedUrlCommand*)command;
 - (void)deleteDocumentFromFirestoreCollection:(CDVInvokedUrlCommand*)command;
 - (void)documentExistsInFirestoreCollection:(CDVInvokedUrlCommand*)command;

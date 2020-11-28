@@ -3123,6 +3123,33 @@ FirebasePlugin.setDocumentInFirestoreCollection(documentId, document, collection
 });
 ```
 
+### mergeDocumentInFirestoreCollection
+Sets (adds/replaces) a document with the given ID in a Firestore collection. Merges the new data with any existing document to avoid overwriting entire documents.
+
+**Parameters**:
+- {string} documentId - document ID to use when setting document in the collection.
+- {object} document - document object to set in collection.
+- {string} collection - name of top-level collection to set document in.
+- {function} success - callback function to call on successfully setting the document.
+- {function} error - callback function which will be passed a {string} error message as an argument.
+
+```javascript
+var documentId = "my_doc";
+var document = {
+    "a_string": "foo",
+    "a_list": [1, 2, 3],
+    "an_object": {
+        "an_integer": 1,
+    }
+};
+var collection = "my_collection";
+FirebasePlugin.mergeDocumentInFirestoreCollection(documentId, document, collection, function(){
+    console.log("Successfully set document with id="+documentId);
+}, function(error){
+    console.error("Error setting document: "+error);
+});
+```
+
 ### updateDocumentInFirestoreCollection
 Updates an existing document with the given ID in a Firestore collection.
 This is a non-destructive update that will only overwrite existing keys in the existing document or add new ones if they don't already exist.
