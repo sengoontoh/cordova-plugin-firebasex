@@ -1120,19 +1120,20 @@ public class FirebasePlugin extends CordovaPlugin {
         returnResults.put("uid", user.getUid());
         returnResults.put("providerId", user.getIdToken(false).getResult().getSignInProvider());
         returnResults.put("isAnonymous", user.isAnonymous());
-
-        user.getIdToken(true).addOnSuccessListener(new OnSuccessListener<GetTokenResult>() {
-            @Override
-            public void onSuccess(GetTokenResult result) {
-                try {
-                    String idToken = result.getToken();
-                    returnResults.put("idToken", idToken);
-                    callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, returnResults));
-                } catch (Exception e) {
-                    handleExceptionWithContext(e, callbackContext);
-                }
-            }
-        });
+        callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, returnResults));
+// bypass this so it works offline
+//        user.getIdToken(false).addOnSuccessListener(new OnSuccessListener<GetTokenResult>() {
+//            @Override
+//            public void onSuccess(GetTokenResult result) {
+//                try {
+//                    String idToken = result.getToken();
+//                    returnResults.put("idToken", idToken);
+//                    callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, returnResults));
+//                } catch (Exception e) {
+//                    handleExceptionWithContext(e, callbackContext);
+//                }
+//            }
+//        });
     }
 
     public void updateUserProfile(final CallbackContext callbackContext, final JSONArray args){

@@ -801,13 +801,15 @@ static NSMutableDictionary* firestoreListeners;
     [userInfo setValue:user.photoURL ? user.photoURL.absoluteString : nil forKey:@"photoUrl"];
     [userInfo setValue:user.uid forKey:@"uid"];
     [userInfo setValue:@(user.isAnonymous ? true : false) forKey:@"isAnonymous"];
-    [user getIDTokenWithCompletion:^(NSString * _Nullable token, NSError * _Nullable error) {
-        [userInfo setValue:token forKey:@"idToken"];
-        [user getIDTokenResultWithCompletion:^(FIRAuthTokenResult * _Nullable tokenResult, NSError * _Nullable error) {
-            [userInfo setValue:tokenResult.signInProvider forKey:@"providerId"];
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo] callbackId:command.callbackId];
-        }];
-    }];
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo] callbackId:command.callbackId];
+// bypass this so it works offline
+//    [user getIDTokenWithCompletion:^(NSString * _Nullable token, NSError * _Nullable error) {
+//        [userInfo setValue:token forKey:@"idToken"];
+//        [user getIDTokenResultWithCompletion:^(FIRAuthTokenResult * _Nullable tokenResult, NSError * _Nullable error) {
+//            [userInfo setValue:tokenResult.signInProvider forKey:@"providerId"];
+//            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo] callbackId:command.callbackId];
+//        }];
+//    }];
 }
 
 - (void)updateUserProfile:(CDVInvokedUrlCommand*)command {
