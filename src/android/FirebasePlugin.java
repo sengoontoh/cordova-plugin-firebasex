@@ -55,13 +55,14 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.MetadataChanges;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.Query.Direction;
-import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
@@ -2100,6 +2101,29 @@ public class FirebasePlugin extends CordovaPlugin {
         });
     }
 
+    private Map<String, Object> replaceDeleteSemaphore(Map<String, Object> node) {
+        for (Map.Entry<String,Object> entry : node.entrySet()) {
+ //           System.out.println("Key = " + entry.getKey() +
+ //                   ", Value = " + entry.getValue() +
+ //                   ", Type = " + entry.getClass() +
+ //                   ", isString = " + entry.getValue().getClass().equals(String.class));
+            if (entry.getValue().getClass().toString().contains("LinkedTreeMap")) {
+                try {
+                    entry.setValue(replaceDeleteSemaphore(jsonStringToMap(entry.getValue().toString())));
+                } catch (Exception e) {
+                    //do nothing
+                    System.out.println(e);
+                }
+            } else if (entry.getValue().getClass().equals(String.class)) {
+ //               System.out.println("Found a string " + entry.getValue());
+                if (entry.getValue().equals("W4KA123")) {
+                    entry.setValue(FieldValue.delete());
+                }
+            }
+        }
+        return node;
+    }
+
     private void mergeDocumentInFirestoreCollection(JSONArray args, CallbackContext callbackContext) throws JSONException {
         cordova.getThreadPool().execute(new Runnable() {
             public void run() {
@@ -2107,9 +2131,12 @@ public class FirebasePlugin extends CordovaPlugin {
                     String documentId = args.getString(0);
                     String jsonDoc = args.getString(1);
                     String collection = args.getString(2);
-
+                    Map data = jsonStringToMap(jsonDoc);
+                    //System.out.println("Before parsing " + data);
+                    Map parsed = replaceDeleteSemaphore(data);
+                    //System.out.println("After parsing " + parsed);
                     firestore.collection(collection).document(documentId)
-                            .set(jsonStringToMap(jsonDoc), SetOptions.merge())
+                            .set(parsed, SetOptions.merge())
                             .addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {
@@ -2136,9 +2163,13 @@ public class FirebasePlugin extends CordovaPlugin {
                     String documentId = args.getString(0);
                     String jsonDoc = args.getString(1);
                     String collection = args.getString(2);
+                    Map data = jsonStringToMap(jsonDoc);
+                    //System.out.println("Before parsing " + data);
+                    Map parsed = replaceDeleteSemaphore(data);
+                    //System.out.println("After parsing " + parsed);
 
                     firestore.collection(collection).document(documentId)
-                            .update(jsonStringToMap(jsonDoc))
+                            .update(parsed)
                             .addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {

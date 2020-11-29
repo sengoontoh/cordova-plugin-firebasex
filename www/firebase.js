@@ -27,7 +27,7 @@ exports._onAuthStateChange = function(userSignedIn){
 /**************
  * Public API
  **************/
-
+exports.DELETE_SEMAPHORE = 'W4KA123';
 // Notifications
 exports.getId = function (success, error) {
   exec(success, error, "FirebasePlugin", "getId", []);

@@ -1538,13 +1538,38 @@ static NSMutableDictionary* firestoreListeners;
     }];
 }
 
+- (void)replaceDeleteSemaphore:(id)object
+{
+    [self replaceDeleteSemaphore:object depth:0 key:nil parent:nil];
+}
+
+- (void)replaceDeleteSemaphore:(id)object depth:(int)depth key:(NSString*)key parent:(id)parent
+{
+    if ([object isKindOfClass:[NSDictionary class]])
+    {
+        for (NSString* key in [object allKeys])
+        {
+            id child = [object objectForKey:key];
+            [self replaceDeleteSemaphore:child depth:(depth + 1) key:key parent:object];
+        }
+    }
+    else {
+        //if semaphore is found, replace it with actual semaphore
+        if ([[object description] isEqualToString:@"W4KA123"]) {
+            [parent setObject:[FIRFieldValue fieldValueForDelete] forKey:key];
+        }
+    }
+}
+
 - (void)mergeDocumentInFirestoreCollection:(CDVInvokedUrlCommand*)command {
     [self.commandDelegate runInBackground:^{
         @try {
             NSString* documentId = [command.arguments objectAtIndex:0];
             NSDictionary* document = [command.arguments objectAtIndex:1];
             NSString* collection = [command.arguments objectAtIndex:2];
-
+            //NSLog(@"Before Dictionary: %@", [document description]);
+            [self replaceDeleteSemaphore:document];
+            //NSLog(@"After Dictionary: %@", [document description]);
             [[[firestore collectionWithPath:collection] documentWithPath:documentId] setData:document merge:YES completion:^(NSError * _Nullable error) {
                 [self handleEmptyResultWithPotentialError:error command:command];
             }];
@@ -1560,6 +1585,7 @@ static NSMutableDictionary* firestoreListeners;
             NSString* documentId = [command.arguments objectAtIndex:0];
             NSDictionary* document = [command.arguments objectAtIndex:1];
             NSString* collection = [command.arguments objectAtIndex:2];
+            [self replaceDeleteSemaphore:document];
 
             FIRDocumentReference* docRef = [[firestore collectionWithPath:collection] documentWithPath:documentId];
             if(docRef != nil){
