@@ -1,4 +1,3 @@
-cordova.define("cordova-plugin-firebasex.FirebasePlugin", function(require, exports, module) {
 var exec = require('cordova/exec');
 
 var ensureBooleanFn = function (callback){
@@ -445,4 +444,3 @@ exports.getDownloadUrlStorage = function (path, success, error) {
     exec(success, error, "FirebasePlugin", "getDownloadUrlStorage", [path]);
 };
 
-});
