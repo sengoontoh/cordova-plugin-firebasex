@@ -63,6 +63,8 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.Query.Direction;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
@@ -110,6 +112,7 @@ public class FirebasePlugin extends CordovaPlugin {
     private FirebaseAnalytics mFirebaseAnalytics;
     private FirebaseCrashlytics firebaseCrashlytics;
     private FirebaseFirestore firestore;
+    private FirebaseStorage storage;
     private Gson gson;
     private FirebaseAuth.AuthStateListener authStateListener;
     private boolean authStateChangeListenerInitialized = false;
@@ -174,6 +177,7 @@ public class FirebasePlugin extends CordovaPlugin {
                     FirebaseAuth.getInstance().addAuthStateListener(authStateListener);
 
                     firestore = FirebaseFirestore.getInstance();
+                    storage = FirebaseStorage.getInstance();
                     gson = new Gson();
 
                     if (extras != null && extras.size() > 1) {
@@ -2580,6 +2584,46 @@ public class FirebasePlugin extends CordovaPlugin {
             removed = true;
         }
         return removed;
+    }
+
+    /*
+     * Firebase Storage
+     */
+    private void getDownloadUrlStorage(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    String path = args.getString(0);
+                    storage.getReference().child(path).getDownloadUrl()
+                            .addOnCompleteListener(new OnCompleteListener<Uri>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Uri> task) {
+                                    try {
+                                        if (task.isSuccessful()) {
+                                            Uri downloadUri = task.getResult();
+                                            callbackContext.success(downloadUri.toString());
+                                        } else {
+                                            Exception e = task.getException();
+                                            if(e != null){
+                                                handleExceptionWithContext(e, callbackContext);
+                                            }
+                                        }
+                                    } catch (Exception e) {
+                                        handleExceptionWithContext(e, callbackContext);
+                                    }
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    handleExceptionWithContext(e, callbackContext);
+                                }
+                            });
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
     }
 
 

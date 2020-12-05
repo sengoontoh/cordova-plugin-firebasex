@@ -1,3 +1,4 @@
+cordova.define("cordova-plugin-firebasex.FirebasePlugin", function(require, exports, module) {
 var exec = require('cordova/exec');
 
 var ensureBooleanFn = function (callback){
@@ -436,3 +437,12 @@ exports.removeFirestoreListener = function (success, error, listenerId) {
 
     exec(success, error, "FirebasePlugin", "removeFirestoreListener", [listenerId.toString()]);
 };
+
+//Storage
+exports.getDownloadUrlStorage = function (path, success, error) {
+    if(typeof path !== 'string') return error("'path' must be a string specifying the path to Firebase Storage");
+
+    exec(success, error, "FirebasePlugin", "getDownloadUrlStorage", [path]);
+};
+
+});
