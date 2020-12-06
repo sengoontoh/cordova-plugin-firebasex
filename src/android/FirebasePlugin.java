@@ -64,7 +64,8 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.Query.Direction;
 import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.StorageMetadata;
+import com.google.firebase.storage.UploadTask;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
@@ -2673,7 +2674,36 @@ public class FirebasePlugin extends CordovaPlugin {
             public void run() {
                 try {
                     String path = args.getString(0);
+                    String base64Image = args.getString(1);
+                    byte[] image;
 
+                    image = Base64.decode(base64Image, Base64.NO_WRAP);
+                    UploadTask uploadTask = storage.getReference().child(path).putBytes(image, new StorageMetadata.Builder()
+                            .setContentType("image/jpeg")
+                            .build());
+                    uploadTask.addOnCompleteListener(new OnCompleteListener<UploadTask.TaskSnapshot>() {
+                                @Override
+                                public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
+                                    try {
+                                            if (task.isSuccessful()) {
+                                            callbackContext.success();
+                                        } else {
+                                            Exception e = task.getException();
+                                            if(e != null){
+                                                handleExceptionWithContext(e, callbackContext);
+                                            }
+                                        }
+                                    } catch (Exception e) {
+                                        handleExceptionWithContext(e, callbackContext);
+                                    }
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    handleExceptionWithContext(e, callbackContext);
+                                }
+                            });
                 } catch (Exception e) {
                     handleExceptionWithContext(e, callbackContext);
                 }
