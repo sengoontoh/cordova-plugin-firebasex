@@ -360,5 +360,10 @@ export interface FirebasePlugin {
         error: (err: string) => void,
         listenerId: string
     ): void
+    getDownloadUrlStorage(
+        success: () => void,
+        error: (err: string) => void,
+        path: string
+    ): void
 }
 declare var FirebasePlugin: FirebasePlugin;

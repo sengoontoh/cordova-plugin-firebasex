@@ -84,6 +84,9 @@ static bool shouldEstablishDirectChannel = false;
         // Setup Firestore
         [FirebasePlugin setFirestore:[FIRFirestore firestore]];
         
+        // Setup Storage
+        [FirebasePlugin setStorage:[FIRStorage storage]];
+
         // Setup Google SignIn
         [GIDSignIn sharedInstance].clientID = [FIRApp defaultApp].options.clientID;
         [GIDSignIn sharedInstance].delegate = self;

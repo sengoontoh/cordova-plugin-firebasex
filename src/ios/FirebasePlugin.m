@@ -36,6 +36,7 @@ static BOOL registeredForRemoteNotifications = NO;
 static NSMutableDictionary* authCredentials;
 static NSString* currentNonce; // used for Apple Sign In
 static FIRFirestore* firestore;
+static FIRStorage* storage;
 static NSUserDefaults* preferences;
 static NSDictionary* googlePlist;
 static NSMutableDictionary* firestoreListeners;
@@ -51,6 +52,10 @@ static NSMutableDictionary* firestoreListeners;
 
 + (void) setFirestore:(FIRFirestore*) firestoreInstance{
     firestore = firestoreInstance;
+}
+
++ (void) setStorage:(FIRStorage*) storageInstance{
+    storage = storageInstance;
 }
 
 // @override abstract
@@ -1929,6 +1934,29 @@ static NSMutableDictionary* firestoreListeners;
         removed = true;
     }
     return removed;
+}
+
+- (void) getDownloadUrlStorage:(CDVInvokedUrlCommand*)command {
+    [self.commandDelegate runInBackground:^{
+        @try {
+            NSString* path = [command.arguments objectAtIndex:0];
+            // Create a reference to the file you want to download
+            FIRStorageReference *starsRef = [storage referenceWithPath:path];
+
+            // Fetch the download URL
+            [starsRef downloadURLWithCompletion:^(NSURL *URL, NSError *error){
+              if (error != nil) {
+                // Handle any errors
+                [self sendPluginErrorWithError:error command:command];
+              } else {
+                // Get the download URL for 'images/stars.jpg'
+                [self handleStringResultWithPotentialError:error command:command result:URL.absoluteString];
+              }
+            }];
+        }@catch (NSException *exception) {
+            [self handlePluginExceptionWithContext:exception :command];
+        }
+    }];
 }
 
 /********************************/

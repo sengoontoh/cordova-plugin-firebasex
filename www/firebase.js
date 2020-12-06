@@ -438,7 +438,7 @@ exports.removeFirestoreListener = function (success, error, listenerId) {
 };
 
 //Storage
-exports.getDownloadUrlStorage = function (path, success, error) {
+exports.getDownloadUrlStorage = function (success, error, path) {
     if(typeof path !== 'string') return error("'path' must be a string specifying the path to Firebase Storage");
 
     exec(success, error, "FirebasePlugin", "getDownloadUrlStorage", [path]);

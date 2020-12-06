@@ -363,6 +363,8 @@ public class FirebasePlugin extends CordovaPlugin {
                 this.listenToFirestoreCollection(args, callbackContext);
             } else if (action.equals("removeFirestoreListener")) {
                 this.removeFirestoreListener(args, callbackContext);
+            } else if (action.equals("getDownloadUrlStorage")) {
+                this.getDownloadUrlStorage(args, callbackContext);
             } else if (action.equals("grantPermission")
                     || action.equals("setBadgeNumber")
                     || action.equals("getBadgeNumber")

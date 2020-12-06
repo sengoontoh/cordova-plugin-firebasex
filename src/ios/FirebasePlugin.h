@@ -102,11 +102,14 @@
 - (void)listenToFirestoreCollection:(CDVInvokedUrlCommand*)command;
 - (void)removeFirestoreListener:(CDVInvokedUrlCommand*)command;
 
+// Firestore
+- (void)getDownloadUrlStorage:(CDVInvokedUrlCommand*)command;
 
 // Internals
 + (FirebasePlugin *) firebasePlugin;
 + (NSString*) appleSignInNonce;
 + (void) setFirestore:(FIRFirestore*) firestoreInstance;
++ (void) setStorage:(FIRStorage*) storageInstance;
 - (void) handlePluginExceptionWithContext: (NSException*) exception :(CDVInvokedUrlCommand*)command;
 - (void) handlePluginExceptionWithoutContext: (NSException*) exception;
 - (void) _logError: (NSString*)msg;
