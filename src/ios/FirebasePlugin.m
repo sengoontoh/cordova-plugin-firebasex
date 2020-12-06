@@ -1959,6 +1959,53 @@ static NSMutableDictionary* firestoreListeners;
     }];
 }
 
+- (void) deleteStorageItem:(CDVInvokedUrlCommand*)command {
+    [self.commandDelegate runInBackground:^{
+        @try {
+            NSString* path = [command.arguments objectAtIndex:0];
+            // Create a reference to the file you want to download
+            FIRStorageReference *starsRef = [storage referenceWithPath:path];
+
+            // Delete the file
+            [starsRef deleteWithCompletion:^(NSError *error){
+              if (error != nil) {
+                // Handle any errors
+                [self sendPluginErrorWithError:error command:command];
+              } else {
+                // success
+                [self sendPluginSuccess:command];
+              }
+            }];
+        }@catch (NSException *exception) {
+            [self handlePluginExceptionWithContext:exception :command];
+        }
+    }];
+}
+
+- (void) uploadStorageItem:(CDVInvokedUrlCommand*)command {
+    [self.commandDelegate runInBackground:^{
+        @try {
+            NSString* path = [command.arguments objectAtIndex:0];
+            NSString* base64Image = [command.arguments objectAtIndex:1];
+            // Create a reference to the file you want to download
+            FIRStorageReference *starsRef = [storage referenceWithPath:path];
+
+            // Fetch the download URL
+            [starsRef downloadURLWithCompletion:^(NSURL *URL, NSError *error){
+              if (error != nil) {
+                // Handle any errors
+                [self sendPluginErrorWithError:error command:command];
+              } else {
+                // Get the download URL for 'images/stars.jpg'
+                [self handleStringResultWithPotentialError:error command:command result:URL.absoluteString];
+              }
+            }];
+        }@catch (NSException *exception) {
+            [self handlePluginExceptionWithContext:exception :command];
+        }
+    }];
+}
+
 /********************************/
 #pragma mark - utility functions
 /********************************/

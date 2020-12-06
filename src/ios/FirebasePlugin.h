@@ -104,6 +104,8 @@
 
 // Firestore
 - (void)getDownloadUrlStorage:(CDVInvokedUrlCommand*)command;
+- (void)deleteStorageItem:(CDVInvokedUrlCommand*)command;
+- (void)uploadStorageItem:(CDVInvokedUrlCommand*)command;
 
 // Internals
 + (FirebasePlugin *) firebasePlugin;
