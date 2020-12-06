@@ -365,6 +365,10 @@ public class FirebasePlugin extends CordovaPlugin {
                 this.removeFirestoreListener(args, callbackContext);
             } else if (action.equals("getDownloadUrlStorage")) {
                 this.getDownloadUrlStorage(args, callbackContext);
+            } else if (action.equals("deleteStorageItem")) {
+                this.deleteStorageItem(args, callbackContext);
+            } else if (action.equals("uploadStorageItem")) {
+                this.uploadStorageItem(args, callbackContext);
             } else if (action.equals("grantPermission")
                     || action.equals("setBadgeNumber")
                     || action.equals("getBadgeNumber")
@@ -2628,6 +2632,54 @@ public class FirebasePlugin extends CordovaPlugin {
         });
     }
 
+    private void deleteStorageItem(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    String path = args.getString(0);
+                    storage.getReference().child(path).delete()
+                            .addOnCompleteListener(new OnCompleteListener<Void>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Void> task) {
+                                    try {
+                                        if (task.isSuccessful()) {
+                                            callbackContext.success();
+                                        } else {
+                                            Exception e = task.getException();
+                                            if(e != null){
+                                                handleExceptionWithContext(e, callbackContext);
+                                            }
+                                        }
+                                    } catch (Exception e) {
+                                        handleExceptionWithContext(e, callbackContext);
+                                    }
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    handleExceptionWithContext(e, callbackContext);
+                                }
+                            });
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
+
+    private void uploadStorageItem(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    String path = args.getString(0);
+
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
 
     /*
      * Helper methods

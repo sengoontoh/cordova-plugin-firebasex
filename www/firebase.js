@@ -444,3 +444,15 @@ exports.getDownloadUrlStorage = function (success, error, path) {
     exec(success, error, "FirebasePlugin", "getDownloadUrlStorage", [path]);
 };
 
+exports.deleteStorageItem = function (success, error, path) {
+    if(typeof path !== 'string') return error("'path' must be a string specifying the path to Firebase Storage");
+
+    exec(success, error, "FirebasePlugin", "deleteStorageItem", [path]);
+};
+
+exports.uploadStorageItem = function (success, error, path, base64Image) {
+    if(typeof path !== 'string') return error("'path' must be a string specifying the path to Firebase Storage");
+    if(typeof base64Image !== 'string') return error("'base64Image' must be a string specifying the path to Firebase Storage");
+
+    exec(success, error, "FirebasePlugin", "uploadStorageItem", [path, base64Image]);
+};

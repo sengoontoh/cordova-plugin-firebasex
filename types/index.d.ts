@@ -365,5 +365,16 @@ export interface FirebasePlugin {
         error: (err: string) => void,
         path: string
     ): void
+    deleteStorageItem(
+        success: () => void,
+        error: (err: string) => void,
+        path: string
+    ): void
+    uploadStorageItem(
+        success: () => void,
+        error: (err: string) => void,
+        path: string,
+        base64Image: string
+    ): void
 }
 declare var FirebasePlugin: FirebasePlugin;
