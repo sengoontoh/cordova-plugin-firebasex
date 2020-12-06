@@ -1987,17 +1987,33 @@ static NSMutableDictionary* firestoreListeners;
         @try {
             NSString* path = [command.arguments objectAtIndex:0];
             NSString* base64Image = [command.arguments objectAtIndex:1];
+            NSData *data = [[NSData alloc] initWithBase64EncodedString:base64Image options:0];
+            
+            // Create the file metadata
+            FIRStorageMetadata *metadata = [[FIRStorageMetadata alloc] init];
+            metadata.contentType = @"image/jpeg";
+            
             // Create a reference to the file you want to download
             FIRStorageReference *starsRef = [storage referenceWithPath:path];
 
-            // Fetch the download URL
-            [starsRef downloadURLWithCompletion:^(NSURL *URL, NSError *error){
+            // Upload the file to the path "images/rivers.jpg"
+            FIRStorageUploadTask *uploadTask = [starsRef putData:data
+                                                         metadata:nil
+                                                         completion:^(FIRStorageMetadata *metadata,
+                                                                    NSError *error) {
               if (error != nil) {
-                // Handle any errors
                 [self sendPluginErrorWithError:error command:command];
               } else {
-                // Get the download URL for 'images/stars.jpg'
-                [self handleStringResultWithPotentialError:error command:command result:URL.absoluteString];
+                // Metadata contains file metadata such as size, content-type, and download URL.
+                //int size = metadata.size;
+                // You can also access to download URL after upload.
+                [starsRef downloadURLWithCompletion:^(NSURL * _Nullable URL, NSError * _Nullable error) {
+                  if (error != nil) {
+                    [self sendPluginErrorWithError:error command:command];
+                  } else {
+                    [self handleStringResultWithPotentialError:error command:command result:URL.absoluteString];
+                  }
+                }];
               }
             }];
         }@catch (NSException *exception) {
