@@ -75,7 +75,7 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfigValue;
 import com.google.firebase.perf.FirebasePerformance;
 import com.google.firebase.perf.metrics.Trace;
 
-
+import com.google.firebase.Timestamp;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
@@ -84,6 +84,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -103,9 +104,20 @@ import com.google.firebase.FirebaseTooManyRequestsException;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
 
 import static android.content.Context.MODE_PRIVATE;
+
 
 public class FirebasePlugin extends CordovaPlugin {
 
@@ -178,8 +190,34 @@ public class FirebasePlugin extends CordovaPlugin {
                     FirebaseAuth.getInstance().addAuthStateListener(authStateListener);
 
                     firestore = FirebaseFirestore.getInstance();
+
+                    JsonSerializer<Timestamp> serializer = new JsonSerializer<Timestamp>() {
+                        @Override
+                        public JsonElement serialize(Timestamp src, Type typeOfSrc, JsonSerializationContext context) {
+                            Number ts = src.getSeconds() + src.getNanoseconds()*1000;
+                            return new JsonPrimitive(ts);
+                        }
+                    };
+
+                    JsonSerializer<Double> doubleJsonSerializer = new JsonSerializer<Double>() {
+                        @Override
+                        public JsonElement serialize(Double src, Type typeOfSrc, JsonSerializationContext context) {
+                            String s = src.toString();
+                            if (s == "NaN") {
+                                return new JsonPrimitive("Double.NaN");
+                            } else {
+                                return new JsonPrimitive(src);
+                            }
+                        }
+                    };
+
+                    gson = new GsonBuilder()
+                            .registerTypeAdapter(Timestamp.class, serializer)
+                            .registerTypeAdapter(Double.class, doubleJsonSerializer)
+                            .serializeNulls()
+                            .create();
+
                     storage = FirebaseStorage.getInstance();
-                    gson = new Gson();
 
                     if (extras != null && extras.size() > 1) {
                         if (FirebasePlugin.notificationStack == null) {
@@ -2144,10 +2182,10 @@ public class FirebasePlugin extends CordovaPlugin {
                     String collection = args.getString(2);
                     Map data = jsonStringToMap(jsonDoc);
                     //System.out.println("Before parsing " + data);
-                    Map parsed = replaceDeleteSemaphore(data);
+                    //Map parsed = replaceDeleteSemaphore(data);
                     //System.out.println("After parsing " + parsed);
                     firestore.collection(collection).document(documentId)
-                            .set(parsed, SetOptions.merge())
+                            .set(data, SetOptions.merge())
                             .addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {
@@ -2176,11 +2214,11 @@ public class FirebasePlugin extends CordovaPlugin {
                     String collection = args.getString(2);
                     Map data = jsonStringToMap(jsonDoc);
                     //System.out.println("Before parsing " + data);
-                    Map parsed = replaceDeleteSemaphore(data);
+                    //Map parsed = replaceDeleteSemaphore(data);
                     //System.out.println("After parsing " + parsed);
 
                     firestore.collection(collection).document(documentId)
-                            .update(parsed)
+                            .update(data)
                             .addOnSuccessListener(new OnSuccessListener<Void>() {
                                 @Override
                                 public void onSuccess(Void aVoid) {
@@ -2949,11 +2987,68 @@ public class FirebasePlugin extends CordovaPlugin {
         }
     }
 
-    private Map<String, Object> jsonStringToMap(String jsonString)  throws JSONException {
-        Type type = new TypeToken<Map<String, Object>>(){}.getType();
-        return gson.fromJson(jsonString, type);
+    private List<Object> mapJsonArrayToList(JsonArray array) throws JSONException {
+        List<Object> list = new ArrayList<Object>();
+        for (int i = 0; i < array.size(); i++) {
+            JsonElement elem = array.get(i);
+            if (elem.isJsonArray()) {
+                list.add(mapJsonArrayToList(elem.getAsJsonArray()));
+            } else if (elem.isJsonObject()) {
+                list.add(mapJsonObjectToMap(elem.getAsJsonObject()));
+            } else if (elem.isJsonPrimitive()) {
+                JsonPrimitive p = elem.getAsJsonPrimitive();
+                if (p.isNumber()) {
+                    list.add(p.getAsDouble());
+                } else if (p.isBoolean()) {
+                    list.add(p.getAsBoolean());
+                } else if (p.isString()) {
+                    String str = p.getAsString();
+                    if (str.equals("W4KA123")) {
+                        list.add(FieldValue.delete());
+                    } else {
+                        list.add(str);
+                    }
+                }
+            } else if (elem.isJsonNull()) {
+                list.add(null);
+            }
+        }
+        return list;
     }
-
+    private Map<String, Object> mapJsonObjectToMap(JsonObject obj) throws JSONException {
+        Map<String, Object> map = new HashMap<String, Object>();
+        for (Map.Entry<String, JsonElement> kv : obj.entrySet()) {
+            String key = kv.getKey();
+            JsonElement elem = kv.getValue();
+            if (elem.isJsonObject()) {
+                map.put(key, mapJsonObjectToMap(elem.getAsJsonObject()));
+            } else if (elem.isJsonArray()) {
+                map.put(key, mapJsonArrayToList(elem.getAsJsonArray()));
+            } else if (elem.isJsonPrimitive()) {
+                JsonPrimitive p = elem.getAsJsonPrimitive();
+                if (p.isNumber()) {
+                    map.put(key, p.getAsDouble());
+                } else if (p.isBoolean()) {
+                    map.put(key, p.getAsBoolean());
+                } else if (p.isString()) {
+                    String str = p.getAsString();
+                    if (str.equals("W4KA123")) {
+                        map.put(key, FieldValue.delete());
+                    } else {
+                        map.put(key, str);
+                    }
+                }
+            } else if (elem.isJsonNull()) {
+                map.put(key, null);
+            }
+        }
+        return map;
+    }
+    private Map<String, Object> jsonStringToMap(String jsonString)  throws JSONException {
+		System.out.println("converting jsonstrng to map");
+        JsonElement elem = JsonParser.parseString(jsonString);
+        return mapJsonObjectToMap(elem.getAsJsonObject());
+    }
 
     private JSONObject mapToJsonObject(Map<String, Object> map) throws JSONException {
         String jsonString = gson.toJson(map);
