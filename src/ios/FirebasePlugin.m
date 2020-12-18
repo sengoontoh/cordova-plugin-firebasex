@@ -455,6 +455,7 @@ static NSMutableDictionary* firestoreListeners;
     }
 }
 
+
 - (void)sendNotification:(NSDictionary *)userInfo {
     @try {
         if([FirebasePluginMessageReceiverManager sendNotification:userInfo]){
@@ -1584,6 +1585,22 @@ static NSMutableDictionary* firestoreListeners;
     }];
 }
 
+- (void)updateDictionaryResult:(NSMutableDictionary*)result
+{
+    for (NSString* key in [result allKeys]) {
+        id value = [result objectForKey:key];
+        if ([value isKindOfClass:[NSNumber class]] && [value isEqualToNumber:[NSDecimalNumber notANumber]]) {
+            result[key] = @"Double.NaN";
+        } else if ([value isKindOfClass:[NSDictionary class]]) {
+            [self updateDictionaryResult:value];
+        } else if ([value isKindOfClass:[FIRTimestamp class]]) {
+            FIRTimestamp* firts = (FIRTimestamp*) value;
+            double ts = (firts.seconds + firts.nanoseconds/1e9);
+            result[key] = [NSNumber numberWithDouble:ts];
+        }
+    }
+}
+
 - (void)updateDocumentInFirestoreCollection:(CDVInvokedUrlCommand*)command {
     [self.commandDelegate runInBackground:^{
         @try {
@@ -2042,6 +2059,7 @@ static NSMutableDictionary* firestoreListeners;
 }
 
 - (void) sendPluginDictionaryResultAndKeepCallback:(NSDictionary*)result command:(CDVInvokedUrlCommand*)command callbackId:(NSString*)callbackId {
+    [self updateDictionaryResult:result];
     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:result];
     [pluginResult setKeepCallbackAsBool:YES];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
