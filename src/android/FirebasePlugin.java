@@ -194,7 +194,7 @@ public class FirebasePlugin extends CordovaPlugin {
                     JsonSerializer<Timestamp> serializer = new JsonSerializer<Timestamp>() {
                         @Override
                         public JsonElement serialize(Timestamp src, Type typeOfSrc, JsonSerializationContext context) {
-                            Number ts = src.getSeconds() + src.getNanoseconds()*1000;
+                            Number ts = (src.getSeconds() + src.getNanoseconds()/1e9);
                             return new JsonPrimitive(ts);
                         }
                     };
