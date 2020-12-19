@@ -118,7 +118,16 @@
 				<string>remote-notification</string>
 			</array>
 		</config-file>
-
+    <config-file parent="com.apple.developer.applesignin" target="*/Entitlements-Debug.plist">
+      <array>
+        <string>Default</string>
+      </array>
+    </config-file>
+    <config-file parent="com.apple.developer.applesignin" target="*/Entitlements-Release.plist">
+      <array>
+        <string>Default</string>
+      </array>
+    </config-file>
 		<resource-file src="src/ios/GoogleService-Info.plist" />
 
 		<header-file src="src/ios/AppDelegate+FirebasePlugin.h" />
