@@ -676,6 +676,23 @@ static NSMutableDictionary* firestoreListeners;
     }
 }
 
+- (void)authenticateUserWithFacebookToken:(CDVInvokedUrlCommand*)command{
+    @try {
+        CDVPluginResult *pluginResult;
+        NSString* accessToken = [command.arguments objectAtIndex:0];
+        FIRAuthCredential *credential = [FIRFacebookAuthProvider
+            credentialWithAccessToken:accessToken];
+        
+        [[FIRAuth auth] signInWithCredential:credential
+                                  completion:^(FIRAuthDataResult * _Nullable authResult,
+                                               NSError * _Nullable error) {
+            [self handleAuthResult:authResult error:error command:command];
+        }];
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
 - (void)signInWithCredential:(CDVInvokedUrlCommand*)command {
     @try {
         FIRAuthCredential* credential = [self obtainAuthCredential:[command.arguments objectAtIndex:0] command:command];

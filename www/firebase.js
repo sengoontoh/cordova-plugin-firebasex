@@ -1,3 +1,4 @@
+cordova.define("cordova-plugin-firebasex.FirebasePlugin", function(require, exports, module) {
 var exec = require('cordova/exec');
 
 var ensureBooleanFn = function (callback){
@@ -286,6 +287,10 @@ exports.authenticateUserWithApple = function (success, error, locale) {
     exec(success, error, "FirebasePlugin", "authenticateUserWithApple", [locale]);
 };
 
+exports.authenticateUserWithFacebookToken = function (accessToken, success, error) {
+    exec(success, error, "FirebasePlugin", "authenticateUserWithFacebookToken", [accessToken]);
+};
+
 exports.signInWithCredential = function (credential, success, error) {
     if(typeof credential !== 'object') return error("'credential' must be an object");
     exec(success, error, "FirebasePlugin", "signInWithCredential", [credential]);
@@ -456,3 +461,5 @@ exports.uploadStorageItem = function (success, error, path, base64Image) {
 
     exec(success, error, "FirebasePlugin", "uploadStorageItem", [path, base64Image]);
 };
+
+});

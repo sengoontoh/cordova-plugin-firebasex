@@ -46,6 +46,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GetTokenResult;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.auth.FacebookAuthProvider;
 import com.google.firebase.auth.OAuthProvider;
 import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.firestore.CollectionReference;
@@ -310,6 +311,8 @@ public class FirebasePlugin extends CordovaPlugin {
                 this.authenticateUserWithGoogle(callbackContext, args);
             } else if (action.equals("authenticateUserWithApple")) {
                 this.authenticateUserWithApple(callbackContext, args);
+            } else if (action.equals("authenticateUserWithFacebookToken")) {
+                this.authenticateUserWithFacebookToken(callbackContext, args);
             } else if (action.equals("createUserWithEmailAndPassword")) {
                 this.createUserWithEmailAndPassword(callbackContext, args);
             } else if (action.equals("signInUserWithEmailAndPassword")) {
@@ -1646,6 +1649,14 @@ public class FirebasePlugin extends CordovaPlugin {
                     if(locale != null){
                         provider.addCustomParameter("locale", locale);
                     }
+                    List<String> scopes =
+                            new ArrayList<String>() {
+                                {
+                                    add("email");
+                                    add("name");
+                                }
+                            };
+                    provider.setScopes(scopes);
                     Task<AuthResult> pending = FirebaseAuth.getInstance().getPendingAuthResult();
                     if (pending != null) {
                         callbackContext.error("Auth result is already pending");
@@ -1659,6 +1670,41 @@ public class FirebasePlugin extends CordovaPlugin {
                         returnResults.put("id", id);
                         callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, returnResults));
                     }
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
+
+    public void authenticateUserWithFacebookToken(final CallbackContext callbackContext, final JSONArray args){
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    String accessToken = args.getString(0);
+                    AuthCredential credential = FacebookAuthProvider.getCredential(accessToken);
+                    FirebasePlugin.instance.authResultCallbackContext = callbackContext;
+                    FirebaseAuth.getInstance().signInWithCredential(credential)
+                        .addOnSuccessListener(new AuthResultOnSuccessListener())
+                        .addOnFailureListener(new AuthResultOnFailureListener());
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
+
+    public void authenticateUserWithAppleToken(final CallbackContext callbackContext, final JSONArray args){
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    String idToken = args.getString(0);
+                    AuthCredential credential =  OAuthProvider.newCredentialBuilder("apple.com")
+                            .setIdToken(idToken)
+                            .build();
+                    FirebaseAuth.getInstance().signInWithCredential(credential)
+                            .addOnSuccessListener(new AuthResultOnSuccessListener())
+                            .addOnFailureListener(new AuthResultOnFailureListener());
                 } catch (Exception e) {
                     handleExceptionWithContext(e, callbackContext);
                 }
