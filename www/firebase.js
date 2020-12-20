@@ -1,4 +1,3 @@
-cordova.define("cordova-plugin-firebasex.FirebasePlugin", function(require, exports, module) {
 var exec = require('cordova/exec');
 
 var ensureBooleanFn = function (callback){
@@ -462,4 +461,3 @@ exports.uploadStorageItem = function (success, error, path, base64Image) {
     exec(success, error, "FirebasePlugin", "uploadStorageItem", [path, base64Image]);
 };
 
-});
