@@ -37,6 +37,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.analytics.FirebaseAnalytics;
@@ -75,6 +76,9 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigValue;
 import com.google.firebase.perf.FirebasePerformance;
 import com.google.firebase.perf.metrics.Trace;
+import com.google.firebase.functions.FirebaseFunctions;
+import com.google.firebase.functions.FirebaseFunctionsException;
+import com.google.firebase.functions.HttpsCallableResult;
 
 import com.google.firebase.Timestamp;
 import org.apache.cordova.CallbackContext;
@@ -127,6 +131,7 @@ public class FirebasePlugin extends CordovaPlugin {
     private FirebaseCrashlytics firebaseCrashlytics;
     private FirebaseFirestore firestore;
     private FirebaseStorage storage;
+    private FirebaseFunctions mFunction;
     private Gson gson;
     private FirebaseAuth.AuthStateListener authStateListener;
     private boolean authStateChangeListenerInitialized = false;
@@ -191,6 +196,7 @@ public class FirebasePlugin extends CordovaPlugin {
                     FirebaseAuth.getInstance().addAuthStateListener(authStateListener);
 
                     firestore = FirebaseFirestore.getInstance();
+                    mFunction = FirebaseFunctions.getInstance("us-central1");
 
                     JsonSerializer<Timestamp> serializer = new JsonSerializer<Timestamp>() {
                         @Override
@@ -409,6 +415,8 @@ public class FirebasePlugin extends CordovaPlugin {
                 this.getDownloadUrlStorage(args, callbackContext);
             } else if (action.equals("deleteStorageItem")) {
                 this.deleteStorageItem(args, callbackContext);
+            } else if (action.equals("callFirebaseFunction")) {
+                this.callFirebaseFunction(args, callbackContext);
             } else if (action.equals("uploadStorageItem")) {
                 this.uploadStorageItem(args, callbackContext);
             } else if (action.equals("grantPermission")
@@ -2788,6 +2796,46 @@ public class FirebasePlugin extends CordovaPlugin {
                                     handleExceptionWithContext(e, callbackContext);
                                 }
                             });
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
+
+    private void callFirebaseFunction(JSONArray args, CallbackContext callbackContext) throws JSONException {
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    String functionName = args.getString(0);
+                    String jsonDoc = args.getString(1);
+                    Map data = jsonStringToMap(jsonDoc);
+                    mFunction
+                        .getHttpsCallable(functionName)
+                        .call(data)
+                        .continueWith(new Continuation<HttpsCallableResult, String>() {
+                            @Override
+                            public String then(@NonNull Task<HttpsCallableResult> task) throws Exception {
+                                // This continuation runs on either success or failure, but if the task
+                                // has failed then getResult() will throw an Exception which will be
+                                // propagated down.
+                                String result = "";
+                                try {
+                                    Map<String, Object> oMap = new HashMap<String,Object>();
+                                    HashMap oResult = (HashMap<String,Object>) task.getResult().getData();
+                                    Iterator hmIterator = oResult.entrySet().iterator();
+                                    while (hmIterator.hasNext()) {
+                                        Map.Entry mapElement = (Map.Entry)hmIterator.next();
+                                        Object value = mapElement.getValue();
+                                        oMap.put(mapElement.getKey().toString(), value);
+                                    }
+                                    callbackContext.success(mapToJsonObject(oMap));
+                                } catch (Exception e) {
+                                    handleExceptionWithContext(e, callbackContext);
+                                }
+                                return result;
+                            }
+                        });
                 } catch (Exception e) {
                     handleExceptionWithContext(e, callbackContext);
                 }

@@ -461,3 +461,11 @@ exports.uploadStorageItem = function (success, error, path, base64Image) {
     exec(success, error, "FirebasePlugin", "uploadStorageItem", [path, base64Image]);
 };
 
+//Firebase function
+exports.callFirebaseFunction = function (success, error, functionName, params) {
+    if(typeof functionName !== 'string') return error("'functionName' must be a string specifying the Firebase function name");
+    if(typeof params !== 'object') return error("'params' must be an object specifying params to the function");
+
+    exec(success, error, "FirebasePlugin", "callFirebaseFunction", [functionName, params]);
+};
+
