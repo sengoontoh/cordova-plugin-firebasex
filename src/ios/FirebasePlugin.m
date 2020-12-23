@@ -1845,6 +1845,18 @@ static NSMutableDictionary* firestoreListeners;
     }];
 }
 
+// Firebase function
+- (void)callFirebaseFunction:(CDVInvokedUrlCommand*)command {
+    [self.commandDelegate runInBackground:^{
+        @try {
+            NSString* functionName = [command.arguments objectAtIndex:0];
+            NSDictionary* params = [command.arguments objectAtIndex:1];
+        }@catch (NSException *exception) {
+            [self handlePluginExceptionWithContext:exception :command];
+        }
+    }];
+}
+
 - (FIRQuery*) applyFiltersToFirestoreCollectionQuery:(NSArray*)filters query:(FIRQuery*)query {
     for (int i = 0; i < [filters count]; i++) {
         NSArray* filter = [filters objectAtIndex:i];

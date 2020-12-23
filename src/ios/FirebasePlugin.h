@@ -108,6 +108,9 @@
 - (void)deleteStorageItem:(CDVInvokedUrlCommand*)command;
 - (void)uploadStorageItem:(CDVInvokedUrlCommand*)command;
 
+// Firebase function
+- (void)callFirebaseFunction:(CDVInvokedUrlCommand*)command;
+
 // Internals
 + (FirebasePlugin *) firebasePlugin;
 + (NSString*) appleSignInNonce;
