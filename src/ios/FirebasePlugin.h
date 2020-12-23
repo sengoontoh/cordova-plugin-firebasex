@@ -116,6 +116,7 @@
 + (NSString*) appleSignInNonce;
 + (void) setFirestore:(FIRFirestore*) firestoreInstance;
 + (void) setStorage:(FIRStorage*) storageInstance;
++ (void) setFunctions:(FIRFunctions*) functionsInstance;
 - (void) handlePluginExceptionWithContext: (NSException*) exception :(CDVInvokedUrlCommand*)command;
 - (void) handlePluginExceptionWithoutContext: (NSException*) exception;
 - (void) _logError: (NSString*)msg;

@@ -37,6 +37,7 @@ static NSMutableDictionary* authCredentials;
 static NSString* currentNonce; // used for Apple Sign In
 static FIRFirestore* firestore;
 static FIRStorage* storage;
+static FIRFunctions* functions;
 static NSUserDefaults* preferences;
 static NSDictionary* googlePlist;
 static NSMutableDictionary* firestoreListeners;
@@ -56,6 +57,10 @@ static NSMutableDictionary* firestoreListeners;
 
 + (void) setStorage:(FIRStorage*) storageInstance{
     storage = storageInstance;
+}
+
++ (void) setFunctions:(FIRFunctions*) functionsInstance{
+    functions = functionsInstance;
 }
 
 // @override abstract
@@ -1851,6 +1856,20 @@ static NSMutableDictionary* firestoreListeners;
         @try {
             NSString* functionName = [command.arguments objectAtIndex:0];
             NSDictionary* params = [command.arguments objectAtIndex:1];
+            [[functions HTTPSCallableWithName:functionName] callWithObject:params
+                                                                  completion:^(FIRHTTPSCallableResult * _Nullable result, NSError * _Nullable error) {
+              if (error) {
+                //if (error.domain == FIRFunctionsErrorDomain) {
+                  //FIRFunctionsErrorCode code = error.code;
+                  //NSString *message = error.localizedDescription;
+                  //NSObject *details = error.userInfo[FIRFunctionsErrorDetailsKey];
+                  //[self sendPluginErrorWithMessage:details:command];
+                //} else {
+                [self sendPluginErrorWithMessage:error.localizedDescription:command];
+                //}
+              }
+              [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:result.data] callbackId:command.callbackId];
+            }];
         }@catch (NSException *exception) {
             [self handlePluginExceptionWithContext:exception :command];
         }
