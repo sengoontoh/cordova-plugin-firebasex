@@ -92,8 +92,12 @@ static NSMutableDictionary* firestoreListeners;
 
         [GIDSignIn sharedInstance].presentingViewController = self.viewController;
 
-        authCredentials = [[NSMutableDictionary alloc] init];
-        firestoreListeners = [[NSMutableDictionary alloc] init];
+        @synchronized (authCredentials) {
+            authCredentials = [[NSMutableDictionary alloc] init];
+        }
+        @synchronized (firestoreListeners) {
+            firestoreListeners = [[NSMutableDictionary alloc] init];
+        }
     }@catch (NSException *exception) {
         [self handlePluginExceptionWithoutContext:exception];
     }
@@ -1968,9 +1972,12 @@ static NSMutableDictionary* firestoreListeners;
 }
 
 - (NSNumber*) saveFirestoreListener: (id<FIRListenerRegistration>) firestoreListener {
-    int id = [self generateId];
-    NSNumber* key = [NSNumber numberWithInt:id];
-    [firestoreListeners setObject:firestoreListener forKey:key];
+    NSNumber* key;
+    @synchronized (firestoreListeners) {
+        int id = [self generateId]; //generateId looks at firestoreListeners hence locking it too
+        key = [NSNumber numberWithInt:id];
+        [firestoreListeners setObject:firestoreListener forKey:key];
+    }
     return key;
 }
 
@@ -1992,11 +1999,13 @@ static NSMutableDictionary* firestoreListeners;
 
 - (bool) _removeFirestoreListener: (NSNumber*) key {
     bool removed = false;
-    if([firestoreListeners objectForKey:key] != nil){
-        id<FIRListenerRegistration> firestoreListener = [firestoreListeners objectForKey:key];
-        [firestoreListener remove];
-        [firestoreListeners removeObjectForKey:key];
-        removed = true;
+    @synchronized (firestoreListeners) {
+        if([firestoreListeners objectForKey:key] != nil){
+            id<FIRListenerRegistration> firestoreListener = [firestoreListeners objectForKey:key];
+            [firestoreListener remove];
+            [firestoreListeners removeObjectForKey:key];
+            removed = true;
+        }
     }
     return removed;
 }
@@ -2230,7 +2239,9 @@ static NSMutableDictionary* firestoreListeners;
     NSString* code = [credential objectForKey:@"code"];
 
     if(key != nil){
-        authCredential = [authCredentials objectForKey:key];
+        @synchronized (authCredentials) {
+            authCredential = [authCredentials objectForKey:key];
+        }
         if(authCredential == nil){
             NSString* errMsg = [NSString stringWithFormat:@"no native auth credential exists for specified id '%@'", key];
             [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:errMsg] callbackId:command.callbackId];
@@ -2264,9 +2275,12 @@ static NSMutableDictionary* firestoreListeners;
 }
 
 - (NSNumber*) saveAuthCredential: (FIRAuthCredential*) authCredential {
-    int id = [self generateId];
-    NSNumber* key = [NSNumber numberWithInt:id];
-    [authCredentials setObject:authCredential forKey:key];
+    NSNumber* key;
+    @synchronized (authCredentials) {
+        int id = [self generateId];
+        key = [NSNumber numberWithInt:id];
+        [authCredentials setObject:authCredential forKey:key];
+    }
     return key;
 }
 
