@@ -2944,8 +2944,12 @@ public class FirebasePlugin extends CordovaPlugin {
     }
 
     private boolean getPreference(String name){
-        SharedPreferences settings = cordovaActivity.getSharedPreferences(SETTINGS_NAME, MODE_PRIVATE);
-        return settings.getBoolean(name, false);
+        if (cordovaActivity == null) {
+            return false;
+        } else {
+            SharedPreferences settings = cordovaActivity.getSharedPreferences(SETTINGS_NAME, MODE_PRIVATE);
+            return settings.getBoolean(name, false);
+        }
     }
 
     private void handleTaskOutcome(@NonNull Task<Void> task, CallbackContext callbackContext) {
