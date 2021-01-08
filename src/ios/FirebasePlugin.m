@@ -1869,7 +1869,7 @@ static NSMutableDictionary* firestoreListeners;
                   //NSObject *details = error.userInfo[FIRFunctionsErrorDetailsKey];
                   //[self sendPluginErrorWithMessage:details:command];
                 //} else {
-                [self sendPluginErrorWithMessage:error.localizedDescription:command];
+                  [self sendPluginErrorWithError:error command:command];
                 //}
               }
               [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:result.data] callbackId:command.callbackId];
@@ -2137,7 +2137,7 @@ static NSMutableDictionary* firestoreListeners;
     NSString *val = nil;
     NSArray *values = [error.userInfo allValues];
 
-    if ([values count] != 0)
+    if ([values count] > 1 && error.userInfo != nil)
         val = [values objectAtIndex:1];
     
     //fallback in case that something went wrong with firebaes response
