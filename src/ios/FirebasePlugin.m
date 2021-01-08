@@ -2133,14 +2133,25 @@ static NSMutableDictionary* firestoreListeners;
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (void) sendPluginErrorWithError:(NSError*)error command:(CDVInvokedUrlCommand*)command{
+- (NSDictionary*) getErrorDictionary:(NSError*)error {
     NSString *val = nil;
     NSArray *values = [error.userInfo allValues];
 
     if ([values count] != 0)
         val = [values objectAtIndex:1];
-        NSDictionary *errorDictionary = [[NSDictionary alloc] initWithObjectsAndKeys:val, @"code", error.localizedDescription, @"message", error.localizedDescription, @"description", nil];
+    
+    //fallback in case that something went wrong with firebaes response
+    if(val == nil){
+        val = error.localizedDescription;
+    };
 
+        NSDictionary *errorDictionary = [[NSDictionary alloc] initWithObjectsAndKeys:val, @"code", error.localizedDescription, @"message", error.localizedDescription, @"description", nil];
+    return errorDictionary;
+}
+
+- (void) sendPluginErrorWithError:(NSError*)error command:(CDVInvokedUrlCommand*)command{
+
+    NSDictionary *errorDictionary = [self getErrorDictionary:error];
 
     [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:errorDictionary] callbackId:command.callbackId];
 }
@@ -2270,7 +2281,8 @@ static NSMutableDictionary* firestoreListeners;
     @try {
            CDVPluginResult* pluginResult;
          if (error) {
-           pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.description];
+           pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:
+                           [self getErrorDictionary:error]];
          }else if (authResult == nil) {
              pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"User not signed in"];
          }else{
