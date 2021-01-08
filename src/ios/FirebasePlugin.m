@@ -2134,7 +2134,15 @@ static NSMutableDictionary* firestoreListeners;
 }
 
 - (void) sendPluginErrorWithError:(NSError*)error command:(CDVInvokedUrlCommand*)command{
-    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.description] callbackId:command.callbackId];
+    NSString *val = nil;
+    NSArray *values = [error.userInfo allValues];
+
+    if ([values count] != 0)
+        val = [values objectAtIndex:1];
+        NSDictionary *errorDictionary = [[NSDictionary alloc] initWithObjectsAndKeys:val, @"code", error.localizedDescription, @"message", error.localizedDescription, @"description", nil];
+
+
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:errorDictionary] callbackId:command.callbackId];
 }
 
 - (void) handleEmptyResultWithPotentialError:(NSError*) error command:(CDVInvokedUrlCommand*)command {
