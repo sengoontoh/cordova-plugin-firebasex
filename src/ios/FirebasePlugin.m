@@ -301,7 +301,7 @@ static NSMutableDictionary* firestoreListeners;
             @try {
                 if(enabled){
                     NSString* message = @"Permission is already granted - call hasPermission() to check before calling grantPermission()";
-                    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:message];
+                    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:message]];
                     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
                 }else{
                     [UNUserNotificationCenter currentNotificationCenter].delegate = (id<UNUserNotificationCenterDelegate> _Nullable) self;
@@ -540,7 +540,9 @@ static NSMutableDictionary* firestoreListeners;
                 CDVPluginResult* pluginResult;
                 if (error) {
                     // Verification code not sent.
-                    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.description];
+                    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionary:error]];
+                    
+
                 } else {
                     // Successful.
                     NSMutableDictionary* result = [[NSMutableDictionary alloc] init];
@@ -676,7 +678,7 @@ static NSMutableDictionary* firestoreListeners;
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_NO_RESULT];
             [pluginResult setKeepCallbackAsBool:YES];
         } else {
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"OS version is too low - Apple Sign In requires iOS 13.0+"];
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"OS version is too low - Apple Sign In requires iOS 13.0+"]];
         }
 
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -721,7 +723,7 @@ static NSMutableDictionary* firestoreListeners;
     @try {
         FIRUser* user = [FIRAuth auth].currentUser;
         if(!user){
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"No user is currently signed"] callbackId:command.callbackId];
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
             return;
         }
 
@@ -766,7 +768,8 @@ static NSMutableDictionary* firestoreListeners;
     @try {
         bool isSignedIn = [FIRAuth auth].currentUser ? true : false;
         if(!isSignedIn){
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"No user is currently signed"] callbackId:command.callbackId];
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
+
             return;
         }
 
@@ -779,7 +782,7 @@ static NSMutableDictionary* firestoreListeners;
         NSError *signOutError;
         BOOL status = [[FIRAuth auth] signOut:&signOutError];
         if (!status) {
-          [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"Error signing out: %@", signOutError]] callbackId:command.callbackId];
+          [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:[NSString stringWithFormat:@"Error signing out: %@", signOutError]]] callbackId:command.callbackId];
         }else{
             [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
         }
@@ -793,7 +796,7 @@ static NSMutableDictionary* firestoreListeners;
     @try {
         FIRUser* user = [FIRAuth auth].currentUser;
         if(!user){
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"No user is currently signed"] callbackId:command.callbackId];
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
             return;
         }
         [self extractAndReturnUserInfo:command];
@@ -808,7 +811,7 @@ static NSMutableDictionary* firestoreListeners;
     @try {
         FIRUser* user = [FIRAuth auth].currentUser;
         if(!user){
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"No user is currently signed"] callbackId:command.callbackId];
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
             return;
         }
         [user reloadWithCompletion:^(NSError * _Nullable error) {
@@ -848,7 +851,7 @@ static NSMutableDictionary* firestoreListeners;
     @try {
         FIRUser* user = [FIRAuth auth].currentUser;
         if(!user){
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"No user is currently signed"] callbackId:command.callbackId];
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
             return;
         }
 
@@ -878,7 +881,7 @@ static NSMutableDictionary* firestoreListeners;
     @try {
         FIRUser* user = [FIRAuth auth].currentUser;
         if(!user){
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"No user is currently signed"] callbackId:command.callbackId];
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
             return;
         }
 
@@ -899,7 +902,7 @@ static NSMutableDictionary* firestoreListeners;
     @try {
         FIRUser* user = [FIRAuth auth].currentUser;
         if(!user){
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"No user is currently signed"] callbackId:command.callbackId];
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
             return;
         }
 
@@ -919,7 +922,7 @@ static NSMutableDictionary* firestoreListeners;
     @try {
         FIRUser* user = [FIRAuth auth].currentUser;
         if(!user){
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"No user is currently signed"] callbackId:command.callbackId];
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
             return;
         }
 
@@ -955,7 +958,7 @@ static NSMutableDictionary* firestoreListeners;
     @try {
         FIRUser* user = [FIRAuth auth].currentUser;
         if(!user){
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"No user is currently signed"] callbackId:command.callbackId];
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
             return;
         }
 
@@ -1161,7 +1164,7 @@ static NSMutableDictionary* firestoreListeners;
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
 
             if(![self isCrashlyticsEnabled]){
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Cannot query didCrashOnPreviousExecution - Crashlytics collection is disabled"];
+                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"Cannot query didCrashOnPreviousExecution - Crashlytics collection is disabled"]];
             } else {
                 pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:[[FIRCrashlytics crashlytics] didCrashDuringPreviousExecution]];
             }
@@ -1180,7 +1183,7 @@ static NSMutableDictionary* firestoreListeners;
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         @try {
             if(![self isCrashlyticsEnabled]){
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Cannot log error - Crashlytics collection is disabled"];
+                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"Cannot log error - Crashlytics collection is disabled"]];
             }
             // We can optionally be passed a stack trace from stackTrace.js which we'll put in userInfo.
             else if ([command.arguments count] > 1) {
@@ -1217,7 +1220,7 @@ static NSMutableDictionary* firestoreListeners;
             NSString* message = [command argumentAtIndex:0 withDefault:@""];
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
             if(![self isCrashlyticsEnabled]){
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Cannot log message - Crashlytics collection is disabled"];
+                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"Cannot log message - Crashlytics collection is disabled"]];
             }else if(message){
                 [[FIRCrashlytics crashlytics] logWithFormat:@"%@", message];
             }
@@ -1236,7 +1239,7 @@ static NSMutableDictionary* firestoreListeners;
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
 
             if(![self isCrashlyticsEnabled]){
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Cannot set custom key/valuee - Crashlytics collection is disabled"];
+                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"Cannot set custom key/valuee - Crashlytics collection is disabled"]];
             }else {
                 [[FIRCrashlytics crashlytics] setCustomValue: value forKey: key];
             }
@@ -1256,7 +1259,7 @@ static NSMutableDictionary* firestoreListeners;
         NSString* userId = [command.arguments objectAtIndex:0];
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         if(![self isCrashlyticsEnabled]){
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Cannot set user ID - Crashlytics collection is disabled"];
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"Cannot set user ID - Crashlytics collection is disabled"]];
         }else{
             [[FIRCrashlytics crashlytics] setUserID:userId];
         }
@@ -1503,7 +1506,7 @@ static NSMutableDictionary* firestoreListeners;
                 [trace incrementMetric:counterNamed byInt:1];
                 [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
             } else {
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Trace not found"];
+                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"Trace not found"]];
             }
 
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -1525,7 +1528,7 @@ static NSMutableDictionary* firestoreListeners;
                 [self.traces removeObjectForKey:traceName];
                 [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
             } else {
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Trace not found"];
+                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"Trace not found"]];
             }
 
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -1869,7 +1872,7 @@ static NSMutableDictionary* firestoreListeners;
                   //NSObject *details = error.userInfo[FIRFunctionsErrorDetailsKey];
                   //[self sendPluginErrorWithMessage:details:command];
                 //} else {
-                [self sendPluginErrorWithMessage:error.localizedDescription:command];
+                  [self sendPluginErrorWithError:error command:command];
                 //}
               }
               [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:result.data] callbackId:command.callbackId];
@@ -2128,13 +2131,37 @@ static NSMutableDictionary* firestoreListeners;
 
 - (void) sendPluginErrorWithMessage: (NSString*) errorMessage :(CDVInvokedUrlCommand*)command
 {
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:errorMessage];
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:errorMessage]];
     [self _logError:errorMessage];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
+- (NSDictionary*) getErrorDictionary:(NSError*)error {
+    NSString *val = nil;
+    NSArray *values = [error.userInfo allValues];
+
+    if ([values count] > 1 && error.userInfo != nil)
+        val = [values objectAtIndex:1];
+    
+    //fallback in case that something went wrong with firebaes response
+    if(val == nil){
+        val = error.localizedDescription;
+    };
+
+        NSDictionary *errorDictionary = [[NSDictionary alloc] initWithObjectsAndKeys:val, @"code", error.localizedDescription, @"message", error.localizedDescription, @"description", nil];
+    return errorDictionary;
+}
+
+- (NSDictionary*) getErrorDictionaryForString:(NSString*)error {
+        NSDictionary *errorDictionary = [[NSDictionary alloc] initWithObjectsAndKeys:error, @"code", error, @"message", error, @"description", nil];
+    return errorDictionary;
+}
+
 - (void) sendPluginErrorWithError:(NSError*)error command:(CDVInvokedUrlCommand*)command{
-    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.description] callbackId:command.callbackId];
+
+    NSDictionary *errorDictionary = [self getErrorDictionary:error];
+
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:errorDictionary] callbackId:command.callbackId];
 }
 
 - (void) handleEmptyResultWithPotentialError:(NSError*) error command:(CDVInvokedUrlCommand*)command {
@@ -2164,7 +2191,7 @@ static NSMutableDictionary* firestoreListeners;
 - (void) handlePluginExceptionWithContext: (NSException*) exception :(CDVInvokedUrlCommand*)command
 {
     [self handlePluginExceptionWithoutContext:exception];
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:exception.reason];
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:exception.reason]];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
@@ -2230,7 +2257,7 @@ static NSMutableDictionary* firestoreListeners;
 
     if(credential == nil){
         NSString* errMsg = @"credential object must be passed as first and only argument";
-        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:errMsg] callbackId:command.callbackId];
+        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:errMsg]] callbackId:command.callbackId];
         return authCredential;
     }
 
@@ -2244,7 +2271,7 @@ static NSMutableDictionary* firestoreListeners;
         }
         if(authCredential == nil){
             NSString* errMsg = [NSString stringWithFormat:@"no native auth credential exists for specified id '%@'", key];
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:errMsg] callbackId:command.callbackId];
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:errMsg]] callbackId:command.callbackId];
         }
     }else if(verificationId != nil && code != nil){
         authCredential = [[FIRPhoneAuthProvider provider]
@@ -2252,7 +2279,7 @@ static NSMutableDictionary* firestoreListeners;
                     verificationCode:code];
     }else{
         NSString* errMsg = @"credential object must either specify the id key of an existing native auth credential or the verificationId/code keys must be specified for a phone number authentication";
-        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:errMsg] callbackId:command.callbackId];
+        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:errMsg]] callbackId:command.callbackId];
     }
 
     return authCredential;
@@ -2262,9 +2289,10 @@ static NSMutableDictionary* firestoreListeners;
     @try {
            CDVPluginResult* pluginResult;
          if (error) {
-           pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.description];
+           pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:
+                           [self getErrorDictionary:error]];
          }else if (authResult == nil) {
-             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"User not signed in"];
+             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"User not signed in"]];
          }else{
              pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
          }
