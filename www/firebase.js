@@ -163,6 +163,10 @@ exports.getInfo = function (success, error) {
   exec(success, error, "FirebasePlugin", "getInfo", []);
 };
 
+exports.checkReady = function (success, error) {
+    exec(success, error, "FirebasePlugin", "checkReady", []);
+  };
+
 exports.setConfigSettings = function (fetchTimeout, minimumFetchInterval, success, error) {
   exec(success, error, "FirebasePlugin", "setConfigSettings", [fetchTimeout, minimumFetchInterval]);
 };
@@ -468,4 +472,5 @@ exports.callFirebaseFunction = function (success, error, functionName, params) {
 
     exec(success, error, "FirebasePlugin", "callFirebaseFunction", [functionName, params]);
 };
+
 
