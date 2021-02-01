@@ -1439,6 +1439,23 @@ static NSMutableDictionary* firestoreListeners;
     }];
 }
 
+- (void)checkReady:(CDVInvokedUrlCommand *)command {
+    [self.commandDelegate runInBackground:^{
+        @try {
+            @synchronized (firestoreListeners) {
+                NSInteger result = 0;
+                if ( firestoreListeners != nil) {
+                    result = 1;
+                }
+                CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsInt:result];
+                [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+            }
+        }@catch (NSException *exception) {
+            [self handlePluginExceptionWithContext:exception :command];
+        }
+    }];
+}
+
 /*
  * Performance
  */

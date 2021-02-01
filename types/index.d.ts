@@ -275,6 +275,10 @@ export interface FirebasePlugin {
         success: (info: object) => void,
         error: (err: ErrorResponse) => void
     ): void
+    checkReady(
+        success: (info: object) => void,
+        error: (err: ErrorResponse) => void
+    ): void
     setConfigSettings(
         configSettings: object,
         success: (info: object) => void,
