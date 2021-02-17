@@ -202,8 +202,7 @@ exports.isPerformanceCollectionEnabled = function (success, error) {
 exports.clearAllNotifications = function (success, error) {
   exec(success, error, "FirebasePlugin", "clearAllNotifications", []);
 };
-
-
+  
 // Crashlytics
 exports.setCrashlyticsCollectionEnabled = function (enabled, success, error) {
     exec(success, error, "FirebasePlugin", "setCrashlyticsCollectionEnabled", [!!enabled]);
@@ -445,6 +444,10 @@ exports.removeFirestoreListener = function (success, error, listenerId) {
     exec(success, error, "FirebasePlugin", "removeFirestoreListener", [listenerId.toString()]);
 };
 
+exports.clearFirestorePersistence = function (success, error) {
+    exec(success, error, "FirebasePlugin", "clearFirestorePersistence", []);
+  };
+
 //Storage
 exports.getDownloadUrlStorage = function (success, error, path) {
     if(typeof path !== 'string') return error("'path' must be a string specifying the path to Firebase Storage");
@@ -472,5 +475,6 @@ exports.callFirebaseFunction = function (success, error, functionName, params) {
 
     exec(success, error, "FirebasePlugin", "callFirebaseFunction", [functionName, params]);
 };
+
 
 

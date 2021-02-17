@@ -419,6 +419,8 @@ public class FirebasePlugin extends CordovaPlugin {
                 this.listenToFirestoreCollection(args, callbackContext);
             } else if (action.equals("removeFirestoreListener")) {
                 this.removeFirestoreListener(args, callbackContext);
+            } else if (action.equals("clearFirestorePersistence")) {
+                this.clearFirestorePersistence(callbackContext);
             } else if (action.equals("getDownloadUrlStorage")) {
                 this.getDownloadUrlStorage(args, callbackContext);
             } else if (action.equals("deleteStorageItem")) {
@@ -2730,6 +2732,21 @@ public class FirebasePlugin extends CordovaPlugin {
             removed = true;
         }
         return removed;
+    }
+
+    public void clearFirestorePersistence(final CallbackContext callbackContext) {
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    firestore.terminate();
+                    firestore.clearPersistence();
+                    firestore = FirebaseFirestore.getInstance();
+                    callbackContext.success();
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
     }
 
     /*

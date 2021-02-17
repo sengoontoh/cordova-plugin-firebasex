@@ -2030,6 +2030,31 @@ static NSMutableDictionary* firestoreListeners;
     return removed;
 }
 
+- (void)clearFirestorePersistence:(CDVInvokedUrlCommand *)command {
+    [self runOnMainThread:^{
+        @try {
+            [firestore terminateWithCompletion:^(NSError * _Nullable error) {
+                if (error) {
+                    [self sendPluginErrorWithError:error command:command];
+                } else {
+                    [firestore clearPersistenceWithCompletion:^(NSError * _Nullable error) {
+                        if (error) {
+                            [self sendPluginErrorWithError:error command:command];
+                        } else {
+                            firestore = [FIRFirestore firestore];
+                            CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+                            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                        }
+                    }];
+                }
+            }];
+        }@catch (NSException *exception) {
+            [self handlePluginExceptionWithContext:exception :command];
+        }
+    }];
+}
+
+
 - (void) getDownloadUrlStorage:(CDVInvokedUrlCommand*)command {
     [self.commandDelegate runInBackground:^{
         @try {

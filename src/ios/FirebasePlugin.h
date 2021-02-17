@@ -103,6 +103,7 @@
 - (void)listenToDocumentInFirestoreCollection:(CDVInvokedUrlCommand*)command;
 - (void)listenToFirestoreCollection:(CDVInvokedUrlCommand*)command;
 - (void)removeFirestoreListener:(CDVInvokedUrlCommand*)command;
+- (void)clearFirestorePersistence:(CDVInvokedUrlCommand *)command;
 
 // Firestore
 - (void)getDownloadUrlStorage:(CDVInvokedUrlCommand*)command;
