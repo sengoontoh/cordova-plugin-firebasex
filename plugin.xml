@@ -13,7 +13,7 @@
 	</engines>
 
 	<preference name="FIREBASE_ANALYTICS_COLLECTION_ENABLED" default="true" />
-	<preference name="FIREBASE_PERFORMANCE_COLLECTION_ENABLED" default="true" />
+	<preference name="FIREBASE_PERFORMANCE_COLLECTION_ENABLED" default="false" />
 	<preference name="FIREBASE_CRASHLYTICS_COLLECTION_ENABLED" default="true" />
 
 	<platform name="android">
