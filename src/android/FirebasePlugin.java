@@ -1221,6 +1221,24 @@ public class FirebasePlugin extends CordovaPlugin {
         });
     }
 
+    private void getIdToken(final CallbackContext callbackContext, final JSONArray args) throws Exception {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        
+        user.getIdToken(true).addOnSuccessListener(new OnSuccessListener<GetTokenResult>() {
+           @Override
+           public void onSuccess(GetTokenResult result) {
+               try {
+                   JSONObject returnResults = new JSONObject();
+                   String idToken = result.getToken();
+                   returnResults.put("idToken", idToken);
+                   callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, returnResults));
+               } catch (Exception e) {
+                   handleExceptionWithContext(e, callbackContext);
+               }
+           }
+       });
+    }
+
     private void extractAndReturnUserInfo(final CallbackContext callbackContext) throws Exception{
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         JSONObject returnResults = new JSONObject();

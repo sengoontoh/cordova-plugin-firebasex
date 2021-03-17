@@ -341,6 +341,10 @@ exports.updateUserEmail = function (email, success, error) {
     exec(success, error, "FirebasePlugin", "updateUserEmail", [email]);
 };
 
+exports.getIdToken = function (success, error) {
+    exec(success, error, "FirebasePlugin", "getIdToken", []);
+};
+
 exports.sendUserEmailVerification = function (success, error) {
     exec(success, error, "FirebasePlugin", "sendUserEmailVerification", []);
 };

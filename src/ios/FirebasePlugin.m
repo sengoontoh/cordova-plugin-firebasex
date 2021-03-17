@@ -826,6 +826,19 @@ static NSMutableDictionary* firestoreListeners;
     }
 }
 
+- (void) getIdToken:(CDVInvokedUrlCommand*)command {
+    FIRUser* user = [FIRAuth auth].currentUser;
+    NSMutableDictionary* userInfo = [NSMutableDictionary new];
+    [user getIDTokenWithCompletion:^(NSString * _Nullable token, NSError * _Nullable error) {
+        [userInfo setValue:token forKey:@"idToken"];
+        [user getIDTokenResultForcingRefresh:true
+                                  completion:^(FIRAuthTokenResult * _Nullable tokenResult, NSError * _Nullable error) {
+           [userInfo setValue:tokenResult.signInProvider forKey:@"providerId"];
+           [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo] callbackId:command.callbackId];
+       }];
+   }];
+}
+
 - (void) extractAndReturnUserInfo:(CDVInvokedUrlCommand *)command {
     FIRUser* user = [FIRAuth auth].currentUser;
     NSMutableDictionary* userInfo = [NSMutableDictionary new];
