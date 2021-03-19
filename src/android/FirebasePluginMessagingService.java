@@ -20,7 +20,7 @@ import android.graphics.Color;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
-
+import com.appboy.AppboyFirebaseMessagingService;
 import java.util.Map;
 import java.util.Random;
 
