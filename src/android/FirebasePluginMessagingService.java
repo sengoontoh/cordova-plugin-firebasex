@@ -60,111 +60,115 @@ public class FirebasePluginMessagingService extends FirebaseMessagingService {
      */
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
-        try{
-            // [START_EXCLUDE]
-            // There are two types of messages data messages and notification messages. Data messages are handled
-            // here in onMessageReceived whether the app is in the foreground or background. Data messages are the type
-            // traditionally used with GCM. Notification messages are only received here in onMessageReceived when the app
-            // is in the foreground. When the app is in the background an automatically generated notification is displayed.
-            // When the user taps on the notification they are returned to the app. Messages containing both notification
-            // and data payloads are treated as notification messages. The Firebase console always sends notification
-            // messages. For more see: https://firebase.google.com/docs/cloud-messaging/concept-options
-            // [END_EXCLUDE]
+        if (AppboyFirebaseMessagingService.handleBrazeRemoteMessage(this, remoteMessage)) {
 
-            // Pass the message to the receiver manager so any registered receivers can decide to handle it
-            boolean wasHandled = FirebasePluginMessageReceiverManager.onMessageReceived(remoteMessage);
-            if (wasHandled) {
-                Log.d(TAG, "Message was handled by a registered receiver");
+        } else {
+            try{
+                // [START_EXCLUDE]
+                // There are two types of messages data messages and notification messages. Data messages are handled
+                // here in onMessageReceived whether the app is in the foreground or background. Data messages are the type
+                // traditionally used with GCM. Notification messages are only received here in onMessageReceived when the app
+                // is in the foreground. When the app is in the background an automatically generated notification is displayed.
+                // When the user taps on the notification they are returned to the app. Messages containing both notification
+                // and data payloads are treated as notification messages. The Firebase console always sends notification
+                // messages. For more see: https://firebase.google.com/docs/cloud-messaging/concept-options
+                // [END_EXCLUDE]
 
-                // Don't process the message in this method.
-                return;
-            }
+                // Pass the message to the receiver manager so any registered receivers can decide to handle it
+                boolean wasHandled = FirebasePluginMessageReceiverManager.onMessageReceived(remoteMessage);
+                if (wasHandled) {
+                    Log.d(TAG, "Message was handled by a registered receiver");
 
-            if(FirebasePlugin.applicationContext == null){
-                FirebasePlugin.applicationContext = this.getApplicationContext();
-            }
-
-            // TODO(developer): Handle FCM messages here.
-            // Not getting messages here? See why this may be: https://goo.gl/39bRNJ
-            String messageType;
-            String title = null;
-            String body = null;
-            String id = null;
-            String sound = null;
-            String vibrate = null;
-            String light = null;
-            String color = null;
-            String icon = null;
-            String channelId = null;
-            String visibility = null;
-            String priority = null;
-            boolean foregroundNotification = false;
-
-            Map<String, String> data = remoteMessage.getData();
-
-            if (remoteMessage.getNotification() != null) {
-                // Notification message payload
-                Log.i(TAG, "Received message: notification");
-                messageType = "notification";
-                id = remoteMessage.getMessageId();
-                RemoteMessage.Notification notification = remoteMessage.getNotification();
-                title = notification.getTitle();
-                body = notification.getBody();
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    channelId = notification.getChannelId();
+                    // Don't process the message in this method.
+                    return;
                 }
-                sound = notification.getSound();
-                color = notification.getColor();
-                icon = notification.getIcon();
-            }else{
-                Log.i(TAG, "Received message: data");
-                messageType = "data";
-            }
 
-            if (data != null) {
-                // Data message payload
-                if(data.containsKey("notification_foreground")){
-                    foregroundNotification = true;
+                if(FirebasePlugin.applicationContext == null){
+                    FirebasePlugin.applicationContext = this.getApplicationContext();
                 }
-                if(data.containsKey("notification_title")) title = data.get("notification_title");
-                if(data.containsKey("notification_body")) body = data.get("notification_body");
-                if(data.containsKey("notification_android_channel_id")) channelId = data.get("notification_android_channel_id");
-                if(data.containsKey("notification_android_id")) id = data.get("notification_android_id");
-                if(data.containsKey("notification_android_sound")) sound = data.get("notification_android_sound");
-                if(data.containsKey("notification_android_vibrate")) vibrate = data.get("notification_android_vibrate");
-                if(data.containsKey("notification_android_light")) light = data.get("notification_android_light"); //String containing hex ARGB color, miliseconds on, miliseconds off, example: '#FFFF00FF,1000,3000'
-                if(data.containsKey("notification_android_color")) color = data.get("notification_android_color");
-                if(data.containsKey("notification_android_icon")) icon = data.get("notification_android_icon");
-                if(data.containsKey("notification_android_visibility")) visibility = data.get("notification_android_visibility");
-                if(data.containsKey("notification_android_priority")) priority = data.get("notification_android_priority");
+
+                // TODO(developer): Handle FCM messages here.
+                // Not getting messages here? See why this may be: https://goo.gl/39bRNJ
+                String messageType;
+                String title = null;
+                String body = null;
+                String id = null;
+                String sound = null;
+                String vibrate = null;
+                String light = null;
+                String color = null;
+                String icon = null;
+                String channelId = null;
+                String visibility = null;
+                String priority = null;
+                boolean foregroundNotification = false;
+
+                Map<String, String> data = remoteMessage.getData();
+
+                if (remoteMessage.getNotification() != null) {
+                    // Notification message payload
+                    Log.i(TAG, "Received message: notification");
+                    messageType = "notification";
+                    id = remoteMessage.getMessageId();
+                    RemoteMessage.Notification notification = remoteMessage.getNotification();
+                    title = notification.getTitle();
+                    body = notification.getBody();
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        channelId = notification.getChannelId();
+                    }
+                    sound = notification.getSound();
+                    color = notification.getColor();
+                    icon = notification.getIcon();
+                }else{
+                    Log.i(TAG, "Received message: data");
+                    messageType = "data";
+                }
+
+                if (data != null) {
+                    // Data message payload
+                    if(data.containsKey("notification_foreground")){
+                        foregroundNotification = true;
+                    }
+                    if(data.containsKey("notification_title")) title = data.get("notification_title");
+                    if(data.containsKey("notification_body")) body = data.get("notification_body");
+                    if(data.containsKey("notification_android_channel_id")) channelId = data.get("notification_android_channel_id");
+                    if(data.containsKey("notification_android_id")) id = data.get("notification_android_id");
+                    if(data.containsKey("notification_android_sound")) sound = data.get("notification_android_sound");
+                    if(data.containsKey("notification_android_vibrate")) vibrate = data.get("notification_android_vibrate");
+                    if(data.containsKey("notification_android_light")) light = data.get("notification_android_light"); //String containing hex ARGB color, miliseconds on, miliseconds off, example: '#FFFF00FF,1000,3000'
+                    if(data.containsKey("notification_android_color")) color = data.get("notification_android_color");
+                    if(data.containsKey("notification_android_icon")) icon = data.get("notification_android_icon");
+                    if(data.containsKey("notification_android_visibility")) visibility = data.get("notification_android_visibility");
+                    if(data.containsKey("notification_android_priority")) priority = data.get("notification_android_priority");
+                }
+
+                if (TextUtils.isEmpty(id)) {
+                    Random rand = new Random();
+                    int n = rand.nextInt(50) + 1;
+                    id = Integer.toString(n);
+                }
+
+                Log.d(TAG, "From: " + remoteMessage.getFrom());
+                Log.d(TAG, "Id: " + id);
+                Log.d(TAG, "Title: " + title);
+                Log.d(TAG, "Body: " + body);
+                Log.d(TAG, "Sound: " + sound);
+                Log.d(TAG, "Vibrate: " + vibrate);
+                Log.d(TAG, "Light: " + light);
+                Log.d(TAG, "Color: " + color);
+                Log.d(TAG, "Icon: " + icon);
+                Log.d(TAG, "Channel Id: " + channelId);
+                Log.d(TAG, "Visibility: " + visibility);
+                Log.d(TAG, "Priority: " + priority);
+
+
+                if (!TextUtils.isEmpty(body) || !TextUtils.isEmpty(title) || (data != null && !data.isEmpty())) {
+                    boolean showNotification = (FirebasePlugin.inBackground() || !FirebasePlugin.hasNotificationsCallback() || foregroundNotification) && (!TextUtils.isEmpty(body) || !TextUtils.isEmpty(title));
+                    sendMessage(remoteMessage, data, messageType, id, title, body, showNotification, sound, vibrate, light, color, icon, channelId, priority, visibility);
+                }
+            }catch (Exception e){
+                FirebasePlugin.handleExceptionWithoutContext(e);
             }
-
-            if (TextUtils.isEmpty(id)) {
-                Random rand = new Random();
-                int n = rand.nextInt(50) + 1;
-                id = Integer.toString(n);
-            }
-
-            Log.d(TAG, "From: " + remoteMessage.getFrom());
-            Log.d(TAG, "Id: " + id);
-            Log.d(TAG, "Title: " + title);
-            Log.d(TAG, "Body: " + body);
-            Log.d(TAG, "Sound: " + sound);
-            Log.d(TAG, "Vibrate: " + vibrate);
-            Log.d(TAG, "Light: " + light);
-            Log.d(TAG, "Color: " + color);
-            Log.d(TAG, "Icon: " + icon);
-            Log.d(TAG, "Channel Id: " + channelId);
-            Log.d(TAG, "Visibility: " + visibility);
-            Log.d(TAG, "Priority: " + priority);
-
-
-            if (!TextUtils.isEmpty(body) || !TextUtils.isEmpty(title) || (data != null && !data.isEmpty())) {
-                boolean showNotification = (FirebasePlugin.inBackground() || !FirebasePlugin.hasNotificationsCallback() || foregroundNotification) && (!TextUtils.isEmpty(body) || !TextUtils.isEmpty(title));
-                sendMessage(remoteMessage, data, messageType, id, title, body, showNotification, sound, vibrate, light, color, icon, channelId, priority, visibility);
-            }
-        }catch (Exception e){
-            FirebasePlugin.handleExceptionWithoutContext(e);
         }
     }
 
