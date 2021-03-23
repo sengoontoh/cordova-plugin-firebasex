@@ -351,6 +351,8 @@ public class FirebasePlugin extends CordovaPlugin {
                 this.getCurrentUser(callbackContext, args);
             } else if (action.equals("reloadCurrentUser")) {
                 this.reloadCurrentUser(callbackContext, args);
+            else if (action.equals("getIdToken")) {
+                this.getIdToken(callbackContext, args);
             } else if (action.equals("updateUserProfile")) {
                 this.updateUserProfile(callbackContext, args);
             } else if (action.equals("updateUserEmail")) {
