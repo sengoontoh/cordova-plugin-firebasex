@@ -528,7 +528,35 @@ didDisconnectWithUser:(GIDGoogleUser *)user
                     
                     NSNumber* key = [[FirebasePlugin firebasePlugin] saveAuthCredential:credential];
                     NSMutableDictionary* result = [[NSMutableDictionary alloc] init];
+                    NSDictionary *fullName;
+                    NSDictionary *appleCredential;
+                    if (appleIDCredential.fullName) {
+                        fullName = @{
+                          @"namePrefix" : appleIDCredential.fullName.namePrefix
+                              ? appleIDCredential.fullName.namePrefix
+                              : @"",
+                          @"givenName" : appleIDCredential.fullName.givenName
+                              ? appleIDCredential.fullName.givenName
+                              : @"",
+                          @"middleName" : appleIDCredential.fullName.middleName
+                              ? appleIDCredential.fullName.middleName
+                              : @"",
+                          @"familyName" : appleIDCredential.fullName.familyName
+                              ? appleIDCredential.fullName.familyName
+                              : @"",
+                          @"nameSuffix" : appleIDCredential.fullName.nameSuffix
+                              ? appleIDCredential.fullName.nameSuffix
+                              : @"",
+                          @"nickname" : appleIDCredential.fullName.nickname
+                              ? appleIDCredential.fullName.nickname
+                              : @""
+                        };
+                    }
+                    appleCredential = @{
+                        @"fullName": fullName
+                    };
                     [result setValue:@"true" forKey:@"instantVerification"];
+                    [result setObject:appleCredential forKey:@"nameData"];
                     [result setValue:key forKey:@"id"];
                     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:result];
                 }
