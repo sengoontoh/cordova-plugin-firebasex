@@ -140,7 +140,7 @@
 		<source-file src="src/ios/FirebasePluginMessageReceiverManager.m" />
 
 		<framework src="AuthenticationServices.framework" />
-
+        <framework src="AdServices.framework" weak="true" />
 		<podspec>
 			<config>
 				<source url="https://cdn.cocoapods.org/"/>
