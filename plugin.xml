@@ -138,9 +138,9 @@
 		<source-file src="src/ios/FirebasePluginMessageReceiver.m" />
 		<header-file src="src/ios/FirebasePluginMessageReceiverManager.h" />
 		<source-file src="src/ios/FirebasePluginMessageReceiverManager.m" />
-
 		<framework src="AuthenticationServices.framework" />
         <framework src="AdServices.framework" weak="true" />
+        <framework src="iAd.framework" />
 		<podspec>
 			<config>
 				<source url="https://cdn.cocoapods.org/"/>
