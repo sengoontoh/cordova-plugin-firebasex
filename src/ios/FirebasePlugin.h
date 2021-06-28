@@ -11,6 +11,7 @@
 // Authentication
 - (void)verifyPhoneNumber:(CDVInvokedUrlCommand*)command;
 - (void)setLanguageCode:(CDVInvokedUrlCommand*)command;
+- (void)unlinkUser:(CDVInvokedUrlCommand*)command;
 - (void)createUserWithEmailAndPassword:(CDVInvokedUrlCommand*)command;
 - (void)signInUserWithEmailAndPassword:(CDVInvokedUrlCommand*)command;
 - (void)authenticateUserWithEmailAndPassword:(CDVInvokedUrlCommand*)command;
@@ -33,6 +34,7 @@
 - (void)updateUserPassword:(CDVInvokedUrlCommand*)command;
 - (void)sendUserPasswordResetEmail:(CDVInvokedUrlCommand*)command;
 - (void)deleteUser:(CDVInvokedUrlCommand*)command;
+- (void)createiAndLinkUserWithEmailAndPassword:(CDVInvokedUrlCommand*)command;
 
 // Remote notifications
 - (void)getId:(CDVInvokedUrlCommand*)command;

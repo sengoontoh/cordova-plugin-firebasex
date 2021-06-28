@@ -261,6 +261,14 @@ exports.setLanguageCode = function (lang, success, error) {
     exec(success, error, "FirebasePlugin", "setLanguageCode", [lang]);
 };
 
+exports.unlinkUser = function (providerID, success, error) {
+    exec(success, error, "FirebasePlugin", "unlinkUser", [providerID]);
+};
+
+exports.createAndLinkUserWithEmailAndPassword = function (email, password, success, error) {
+    exec(success, error, "FirebasePlugin", "createAndLinkUserWithEmailAndPassword", [email, password]);
+};
+
 exports.createUserWithEmailAndPassword = function (email, password, success, error) {
     exec(success, error, "FirebasePlugin", "createUserWithEmailAndPassword", [email, password]);
 };

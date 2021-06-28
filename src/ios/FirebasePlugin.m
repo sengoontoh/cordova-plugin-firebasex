@@ -570,6 +570,45 @@ static NSMutableDictionary* firestoreListeners;
     }
 }
 
+- (void)unlinkUser:(CDVInvokedUrlCommand*)command {
+    @try {
+        NSString* providerID = [command.arguments objectAtIndex:0];
+        [[FIRAuth auth].currentUser unlinkFromProvider:providerID
+                                          completion:^(FIRUser *_Nullable user, NSError *_Nullable error) {
+          CDVPluginResult* pluginResult;
+          if (error) {
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:
+                            [self getErrorDictionary:error]];
+          }else{
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+          }
+          [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+        }];
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
+- (void)createAndLinkUserWithEmailAndPassword:(CDVInvokedUrlCommand*)command {
+    @try {
+        NSString* email = [command.arguments objectAtIndex:0];
+        NSString* password = [command.arguments objectAtIndex:1];
+        FIRAuthCredential *credential =
+          [FIREmailAuthProvider credentialWithEmail:email
+                                                   password:password];
+        [[FIRAuth auth].currentUser linkWithCredential:credential
+          completion:^(FIRAuthDataResult *authResult, NSError *_Nullable error) {
+          @try {
+              [self handleAuthResult:authResult error:error command:command];
+          }@catch (NSException *exception) {
+              [self handlePluginExceptionWithContext:exception :command];
+          }
+        }];
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
 - (void)createUserWithEmailAndPassword:(CDVInvokedUrlCommand*)command {
     @try {
         NSString* email = [command.arguments objectAtIndex:0];
@@ -849,6 +888,16 @@ static NSMutableDictionary* firestoreListeners;
     [userInfo setValue:user.photoURL ? user.photoURL.absoluteString : nil forKey:@"photoUrl"];
     [userInfo setValue:user.uid forKey:@"uid"];
     [userInfo setValue:@(user.isAnonymous ? true : false) forKey:@"isAnonymous"];
+    NSMutableArray *providers=[NSMutableArray new];
+    for (id<FIRUserInfo> item in user.providerData) {
+      NSMutableDictionary* providerInfo = [NSMutableDictionary new];
+      [providerInfo setValue:item.providerID forKey:@"providerID"];
+      [providerInfo setValue:item.displayName forKey:@"displayName"];
+      [providerInfo setValue:item.uid forKey:@"userID"];
+      [providers addObject:providerInfo];
+    }
+    [userInfo setValue:providers forKey:@"providerData"];
+    //[userInfo setValue:[user.providerData mutableCopy] forKey:@"providerData"];
     [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo] callbackId:command.callbackId];
 // bypass this so it works offline
 //    [user getIDTokenWithCompletion:^(NSString * _Nullable token, NSError * _Nullable error) {
