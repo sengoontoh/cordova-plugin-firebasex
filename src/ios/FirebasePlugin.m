@@ -83,7 +83,7 @@ static NSMutableDictionary* firestoreListeners;
         if([self getGooglePlistFlagWithDefaultValue:FIREBASE_PERFORMANCE_COLLECTION_ENABLED defaultValue:YES]){
             [self setPreferenceFlag:FIREBASE_PERFORMANCE_COLLECTION_ENABLED flag:YES];
         }
-        
+
         // Set actionable categories if pn-actions.json exist in bundle
         [self setActionableNotifications];
 
@@ -125,7 +125,7 @@ static NSMutableDictionary* firestoreListeners;
                 NSString *actionId = [action objectForKey:@"id"];
                 NSString *actionTitle = [action objectForKey:@"title"];
                 UNNotificationActionOptions options = UNNotificationActionOptionNone;
-                
+
                 id mode = [action objectForKey:@"foreground"];
                 if (mode != nil && (([mode isKindOfClass:[NSString class]] && [mode isEqualToString:@"true"]) || [mode boolValue])) {
                     options |= UNNotificationActionOptionForeground;
@@ -134,7 +134,7 @@ static NSMutableDictionary* firestoreListeners;
                 if (destructive != nil && (([destructive isKindOfClass:[NSString class]] && [destructive isEqualToString:@"true"]) || [destructive boolValue])) {
                     options |= UNNotificationActionOptionDestructive;
                 }
-                
+
                 [buttons addObject:[UNNotificationAction actionWithIdentifier:actionId
                     title:NSLocalizedString(actionTitle, nil) options:options]];
             }
@@ -315,7 +315,7 @@ static NSMutableDictionary* firestoreListeners;
                                 [self registerForRemoteNotifications];
                             }
                             [self handleBoolResultWithPotentialError:error command:command result:granted];
-                            
+
                         }@catch (NSException *exception) {
                             [self handlePluginExceptionWithContext:exception :command];
                         }
@@ -541,7 +541,7 @@ static NSMutableDictionary* firestoreListeners;
                 if (error) {
                     // Verification code not sent.
                     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionary:error]];
-                    
+
 
                 } else {
                     // Successful.
@@ -653,7 +653,7 @@ static NSMutableDictionary* firestoreListeners;
         NSString* password = [command.arguments objectAtIndex:1];
         FIRAuthCredential* authCredential = [FIREmailAuthProvider credentialWithEmail:email password:password];
         NSNumber* key = [self saveAuthCredential:authCredential];
-        
+
         NSMutableDictionary* result = [[NSMutableDictionary alloc] init];
         [result setValue:@"true" forKey:@"instantVerification"];
         [result setValue:key forKey:@"id"];
@@ -732,7 +732,7 @@ static NSMutableDictionary* firestoreListeners;
         NSString* accessToken = [command.arguments objectAtIndex:0];
         FIRAuthCredential *credential = [FIRFacebookAuthProvider
             credentialWithAccessToken:accessToken];
-        
+
         [[FIRAuth auth] signInWithCredential:credential
                                   completion:^(FIRAuthDataResult * _Nullable authResult,
                                                NSError * _Nullable error) {
@@ -880,6 +880,10 @@ static NSMutableDictionary* firestoreListeners;
 
 - (void) extractAndReturnUserInfo:(CDVInvokedUrlCommand *)command {
     FIRUser* user = [FIRAuth auth].currentUser;
+    NSString* provider_name = @"";
+    for (id<FIRUserInfo> userInfo in user.providerData) {
+        provider_name = userInfo.providerID;
+    }
     NSMutableDictionary* userInfo = [NSMutableDictionary new];
     [userInfo setValue:user.displayName forKey:@"name"];
     [userInfo setValue:user.email forKey:@"email"];
@@ -887,6 +891,7 @@ static NSMutableDictionary* firestoreListeners;
     [userInfo setValue:user.phoneNumber forKey:@"phoneNumber"];
     [userInfo setValue:user.photoURL ? user.photoURL.absoluteString : nil forKey:@"photoUrl"];
     [userInfo setValue:user.uid forKey:@"uid"];
+    [userInfo setValue:provider_name forKey:@"providerId"];
     [userInfo setValue:@(user.isAnonymous ? true : false) forKey:@"isAnonymous"];
     NSMutableArray *providers=[NSMutableArray new];
     for (id<FIRUserInfo> item in user.providerData) {
@@ -1338,19 +1343,19 @@ static NSMutableDictionary* firestoreListeners;
     [self.commandDelegate runInBackground:^{
         @try {
             FIRRemoteConfig* remoteConfig = [FIRRemoteConfig remoteConfig];
-            
+
             FIRRemoteConfigSettings* settings = [[FIRRemoteConfigSettings alloc] init];
-            
+
             if([command.arguments objectAtIndex:0] != [NSNull null]){
                 settings.fetchTimeout = [[command.arguments objectAtIndex:0] longValue];
             }
-            
+
             if([command.arguments objectAtIndex:1] != [NSNull null]){
                 settings.minimumFetchInterval = [[command.arguments objectAtIndex:1] longValue];
             }
-            
+
             remoteConfig.configSettings = settings;
-            
+
             [self sendPluginSuccess:command];
         }@catch (NSException *exception) {
             [self handlePluginExceptionWithContext:exception :command];
@@ -1442,11 +1447,11 @@ static NSMutableDictionary* firestoreListeners;
             FIRRemoteConfig* remoteConfig = [FIRRemoteConfig remoteConfig];
             NSArray* keys = [remoteConfig allKeysFromSource:FIRRemoteConfigSourceDefault];
             NSMutableDictionary* result = [[NSMutableDictionary alloc] init];
-            
+
             for (NSString* key in keys) {
                 [result setObject:remoteConfig[key].stringValue forKey:key];
             }
-    
+
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:result];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
         }@catch (NSException *exception) {
@@ -1823,7 +1828,7 @@ static NSMutableDictionary* firestoreListeners;
                     [self handlePluginExceptionWithContext:exception :command];
                 }
             }];
-            
+
             NSMutableDictionary* jsResult = [[NSMutableDictionary alloc] init];;
             [jsResult setObject:@"id" forKey:@"eventType"];
             NSNumber* key = [self saveFirestoreListener:listener];
@@ -1843,12 +1848,12 @@ static NSMutableDictionary* firestoreListeners;
             if([command.arguments objectAtIndex:1] != [NSNull null]){
                 filters = [command.arguments objectAtIndex:1];
             }
-            
+
             FIRQuery* query = [firestore collectionWithPath:collection];
             if(filters != nil){
                 query = [self applyFiltersToFirestoreCollectionQuery:filters query:query];
             }
-            
+
             [query getDocumentsWithCompletion:^(FIRQuerySnapshot * _Nullable snapshot, NSError * _Nullable error) {
                 if (error != nil) {
                     [self sendPluginErrorWithMessage:error.localizedDescription:command];
@@ -1875,12 +1880,12 @@ static NSMutableDictionary* firestoreListeners;
                 filters = [command.arguments objectAtIndex:1];
             }
             bool includeMetadata = [command.arguments objectAtIndex:2];
-            
+
             FIRQuery* query = [firestore collectionWithPath:collection];
             if(filters != nil){
                 query = [self applyFiltersToFirestoreCollectionQuery:filters query:query];
             }
-            
+
             id<FIRListenerRegistration> listener = [query
                 addSnapshotListenerWithIncludeMetadataChanges:includeMetadata
                 listener:^(FIRQuerySnapshot *snapshot, NSError *error) {
@@ -1888,7 +1893,7 @@ static NSMutableDictionary* firestoreListeners;
                         if(snapshot != nil){
                             NSMutableDictionary* jsResult = [[NSMutableDictionary alloc] init];
                             [jsResult setObject:@"change" forKey:@"eventType"];
-                            
+
                             NSMutableDictionary* documents = [[NSMutableDictionary alloc] init];
                             bool hasDocuments = false;
                             for (FIRDocumentChange* dc in snapshot.documentChanges) {
@@ -2008,12 +2013,12 @@ static NSMutableDictionary* firestoreListeners;
 
 - (id) getFilterValueAsType: (NSArray*)filter  valueIndex:(int)valueIndex typeIndex:(int)typeIndex{
     id typedValue = [filter objectAtIndex:valueIndex];
-    
+
     NSString* type = @"string";
     if([filter objectAtIndex:typeIndex] != nil){
         type = [filter objectAtIndex:typeIndex];
     }
-    
+
     if([type isEqual:@"boolean"]){
         if([typedValue isKindOfClass:[NSNumber class]]){
             typedValue = [NSNumber numberWithBool:typedValue];
@@ -2041,7 +2046,7 @@ static NSMutableDictionary* firestoreListeners;
             }
         }
     }
-    
+
     return typedValue;
 }
 
@@ -2169,11 +2174,11 @@ static NSMutableDictionary* firestoreListeners;
             NSString* path = [command.arguments objectAtIndex:0];
             NSString* base64Image = [command.arguments objectAtIndex:1];
             NSData *data = [[NSData alloc] initWithBase64EncodedString:base64Image options:0];
-            
+
             // Create the file metadata
             FIRStorageMetadata *metadata = [[FIRStorageMetadata alloc] init];
             metadata.contentType = @"image/jpeg";
-            
+
             // Create a reference to the file you want to download
             FIRStorageReference *starsRef = [storage referenceWithPath:path];
 
@@ -2246,7 +2251,7 @@ static NSMutableDictionary* firestoreListeners;
 
     if ([values count] > 1 && error.userInfo != nil)
         val = [values objectAtIndex:1];
-    
+
     //fallback in case that something went wrong with firebaes response
     if(val == nil){
         val = error.localizedDescription;
