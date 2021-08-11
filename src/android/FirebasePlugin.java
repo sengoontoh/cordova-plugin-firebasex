@@ -3083,10 +3083,10 @@ public class FirebasePlugin extends CordovaPlugin {
 
     private static void dispatchJsonError(CallbackContext callbackContext, Exception e) {
         String code = getErrorCodeFromException(e);
-        String message = e.getMessage();
+        //get the error message string only
+        String message = e.getCause().getMessage();
         dispatchJsonError(callbackContext, code, message);
     }
-
 
     private void handleTaskOutcome(@NonNull Task<Void> task, CallbackContext callbackContext) {
         try {
