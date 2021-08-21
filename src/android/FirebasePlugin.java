@@ -3084,7 +3084,9 @@ public class FirebasePlugin extends CordovaPlugin {
     private static void dispatchJsonError(CallbackContext callbackContext, Exception e) {
         String code = getErrorCodeFromException(e);
         //get the error message string only
-        String message = e.getCause().getMessage();
+        Throwable cause = e.getCause();
+	//check if cause exist. DEV-687
+        String message = cause != null ? cause.getMessage() : e.getMessage();
         dispatchJsonError(callbackContext, code, message);
     }
 
