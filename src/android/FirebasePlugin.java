@@ -343,6 +343,8 @@ public class FirebasePlugin extends CordovaPlugin {
                 this.linkUserWithCredential(callbackContext, args);
             } else if (action.equals("reauthenticateWithCredential")) {
                 this.reauthenticateWithCredential(callbackContext, args);
+            } else if (action.equals("reauthenticateWithPassword")) {
+                this.reauthenticateWithPassword(callbackContext, args);
             } else if (action.equals("isUserSignedIn")) {
                 this.isUserSignedIn(callbackContext, args);
             } else if (action.equals("signOutUser")) {
@@ -1435,7 +1437,33 @@ public class FirebasePlugin extends CordovaPlugin {
         });
     }
 
+    public void reauthenticateWithPassword(final CallbackContext callbackContext, final JSONArray args){
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                    if(user == null){
+                        dispatchJsonError(callbackContext, "No user is currently signed");
+                        return;
+                    }
 
+                    String email = args.getString(0);
+                    String password = args.getString(1);
+                    AuthCredential authCredential = EmailAuthProvider.getCredential(email, password);
+                    if(authCredential != null){
+                        handleTaskOutcome(user.reauthenticate(authCredential), callbackContext);
+                        return;
+                    }
+
+                    //ELSE
+                    dispatchJsonError(callbackContext, "Specified native auth credential id does not exist");
+
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
 
     public void signInWithCredential(final CallbackContext callbackContext, final JSONArray args){
         cordova.getThreadPool().execute(new Runnable() {
