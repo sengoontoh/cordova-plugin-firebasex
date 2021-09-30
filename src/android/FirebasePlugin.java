@@ -47,6 +47,7 @@ import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.UserInfo;
 import com.google.firebase.auth.GetTokenResult;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.auth.FacebookAuthProvider;
@@ -329,6 +330,10 @@ public class FirebasePlugin extends CordovaPlugin {
                 this.authenticateUserWithFacebookToken(callbackContext, args);
             } else if (action.equals("createUserWithEmailAndPassword")) {
                 this.createUserWithEmailAndPassword(callbackContext, args);
+            } else if (action.equals("createAndLinkUserWithEmailAndPassword")) {
+                this.createAndLinkUserWithEmailAndPassword(callbackContext, args);
+            } else if (action.equals("unlinkUser")) {
+                this.unlinkUser(callbackContext, args);
             } else if (action.equals("signInUserWithEmailAndPassword")) {
                 this.signInUserWithEmailAndPassword(callbackContext, args);
             } else if (action.equals("authenticateUserWithEmailAndPassword")) {
@@ -1250,8 +1255,17 @@ public class FirebasePlugin extends CordovaPlugin {
         returnResults.put("phoneNumber", user.getPhoneNumber());
         returnResults.put("photoUrl", user.getPhotoUrl() == null ? null : user.getPhotoUrl().toString());
         returnResults.put("uid", user.getUid());
-        returnResults.put("providerId", user.getIdToken(false).getResult().getSignInProvider());
         returnResults.put("isAnonymous", user.isAnonymous());
+        JSONArray providers = new JSONArray();
+        for (UserInfo info : user.getProviderData()) {
+            JSONObject providerInfo = new JSONObject();
+            providerInfo.put("providerId", info.getProviderId());
+            providerInfo.put("displayName", info.getDisplayName());
+            providerInfo.put("userID", info.getUid());
+            providerInfo.put("email", info.getEmail());
+            providers.put(providerInfo);
+        }
+        returnResults.put("providerData", providers);
         callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, returnResults));
 // bypass this so it works offline
 //        user.getIdToken(false).addOnSuccessListener(new OnSuccessListener<GetTokenResult>() {
@@ -1606,6 +1620,49 @@ public class FirebasePlugin extends CordovaPlugin {
                     FirebaseAuth.getInstance().setLanguageCode(lang);
 
                     Log.d(TAG, "Language code setted to "+lang);
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
+
+    public void createAndLinkUserWithEmailAndPassword(final CallbackContext callbackContext, final JSONArray args){
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    String email = args.getString(0);
+                    String password = args.getString(1);
+                    if(email == null || email.equals("")){
+                        dispatchJsonError(callbackContext, "User email address must be specified");
+                        return;
+                    }
+
+                    if(password == null || password.equals("")){
+                        dispatchJsonError(callbackContext, "User password must be specified");
+                        return;
+                    }
+
+                    AuthCredential authCredential = EmailAuthProvider.getCredential(email, password);
+                    if(authCredential != null){
+                        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                        user.linkWithCredential(authCredential).addOnCompleteListener(cordova.getActivity(), new AuthResultOnCompleteListener(callbackContext));
+                        return;
+                    }
+                } catch (Exception e) {
+                    handleExceptionWithContext(e, callbackContext);
+                }
+            }
+        });
+    }
+
+    public void unlinkUser(final CallbackContext callbackContext, final JSONArray args){
+        cordova.getThreadPool().execute(new Runnable() {
+            public void run() {
+                try {
+                    String providerId = args.getString(0);
+                    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                    user.unlink(providerId).addOnCompleteListener(cordova.getActivity(), new AuthResultOnCompleteListener(callbackContext));
                 } catch (Exception e) {
                     handleExceptionWithContext(e, callbackContext);
                 }

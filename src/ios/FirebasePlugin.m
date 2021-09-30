@@ -894,6 +894,7 @@ static NSMutableDictionary* firestoreListeners;
       [providerInfo setValue:item.providerID forKey:@"providerID"];
       [providerInfo setValue:item.displayName forKey:@"displayName"];
       [providerInfo setValue:item.uid forKey:@"userID"];
+      [providerInfo setValue:item.email forKey:@"email"];
       [providers addObject:providerInfo];
     }
     [userInfo setValue:providers forKey:@"providerData"];
