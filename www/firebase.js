@@ -316,6 +316,10 @@ exports.reauthenticateWithCredential = function (credential, success, error) {
     exec(success, error, "FirebasePlugin", "reauthenticateWithCredential", [credential]);
 };
 
+exports.reauthenticateWithPassword = function (email, password, success, error) {
+    exec(success, error, "FirebasePlugin", "reauthenticateWithPassword", [email, password]);
+};
+
 exports.isUserSignedIn = function (success, error) {
     exec(ensureBooleanFn(success), error, "FirebasePlugin", "isUserSignedIn", []);
 };
