@@ -857,22 +857,6 @@ static NSMutableDictionary* firestoreListeners;
     @try {
         FIRUser* user = [FIRAuth auth].currentUser;
 
-        NSString *appIdentifierPrefix =
-            [[NSBundle mainBundle] objectForInfoDictionaryKey:@"AppIdentifierPrefix"];
-
-        NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
-
-        NSString *accessGroup = [appIdentifierPrefix stringByAppendingString:@"."];
-        accessGroup = [accessGroup stringByAppendingString:bundleIdentifier];
-        FIRUser *tempUser = [FIRAuth.auth getStoredUserForAccessGroup:accessGroup
-                                                           error:nil];
-        if (tempUser) {
-            [FIRAuth.auth useUserAccessGroup:accessGroup error:nil];
-          } else if(user) {
-              [FIRAuth.auth updateCurrentUser:user completion:^(NSError * _Nullable error) {
-                // Error handling
-              }];
-        }
         if(!user){
             [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
             return;
