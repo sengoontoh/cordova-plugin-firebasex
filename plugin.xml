@@ -71,8 +71,8 @@
 		<preference name="ANDROID_FIREBASE_FIRESTORE_VERSION" default="23.0.2" />
         <preference name="ANDROID_FIREBASE_STORAGE_VERSION" default="20.0.0" />
         <preference name="ANDROID_FIREBASE_FUNCTION_VERSION" default="20.0.0" />
-		<preference name="ANDROID_FIREBASE_CRASHLYTICS_VERSION" default="18.1.0" />
-		<preference name="ANDROID_FIREBASE_CRASHLYTICS_NDK_VERSION" default="18.1.0" />
+		<preference name="ANDROID_FIREBASE_CRASHLYTICS_VERSION" default="18.2.8" />
+		<preference name="ANDROID_FIREBASE_CRASHLYTICS_NDK_VERSION" default="18.2.8" />
 		<preference name="ANDROID_GSON_VERSION" default="2.8.7" />
 		<preference name="ANDROID_FIREBASE_PERF_GRADLE_PLUGIN_VERSION" default="1.4.1" />
 
