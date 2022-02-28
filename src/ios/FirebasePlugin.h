@@ -36,6 +36,7 @@
 - (void)deleteUser:(CDVInvokedUrlCommand*)command;
 - (void)createiAndLinkUserWithEmailAndPassword:(CDVInvokedUrlCommand*)command;
 - (void)reauthenticateWithPassword:(CDVInvokedUrlCommand*)command;
+- (void)transferUserToKeychain:(CDVInvokedUrlCommand*)command;
 
 
 // Remote notifications
