@@ -336,6 +336,13 @@ exports.getCurrentUser = function (success, error) {
     }, error, "FirebasePlugin", "getCurrentUser", []);
 };
 
+exports.getKeychainUser = function (success, error) {
+    exec(function(user){
+        user.emailIsVerified = ensureBoolean(user.emailIsVerified);
+        success(user);
+    }, error, "FirebasePlugin", "getKeychainUser", []);
+};
+
 
 exports.transferUserToKeychain = function (success, error) {
     exec(function(user){

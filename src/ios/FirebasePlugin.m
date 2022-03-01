@@ -884,6 +884,27 @@ static NSMutableDictionary* firestoreListeners;
     }
 }
 
+- (void)getKeychainUser:(CDVInvokedUrlCommand *)command {
+
+    @try {
+        NSString *appIdentifierPrefix = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"AppIdentifierPrefix"];
+        NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+        NSString *accessGroup = [appIdentifierPrefix stringByAppendingString:@"."];
+        accessGroup = [accessGroup stringByAppendingString:bundleIdentifier];
+
+        FIRUser *user = [[FIRAuth auth] getStoredUserForAccessGroup:accessGroup error:nil];
+
+        if(!user){
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
+            return;
+        }
+        [self extractAndReturnUserInfo:command];
+
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
 - (void)getCurrentUser:(CDVInvokedUrlCommand *)command {
 
     @try {

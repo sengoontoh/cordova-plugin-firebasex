@@ -26,6 +26,7 @@
 - (void)isUserSignedIn:(CDVInvokedUrlCommand*)command;
 - (void)signOutUser:(CDVInvokedUrlCommand*)command;
 - (void)getCurrentUser:(CDVInvokedUrlCommand*)command;
+- (void)getKeychainUser:(CDVInvokedUrlCommand*)command;
 - (void)reloadCurrentUser:(CDVInvokedUrlCommand*)command;
 - (void) getIdToken:(CDVInvokedUrlCommand*)command;
 - (void)updateUserProfile:(CDVInvokedUrlCommand*)command;
