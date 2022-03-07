@@ -73,20 +73,6 @@ static bool shouldEstablishDirectChannel = false;
             isFirebaseInitializedWithPlist = true;
         }
 
-        @try {
-            NSString *appIdentifierPrefix =
-                [[NSBundle mainBundle] objectForInfoDictionaryKey:@"AppIdentifierPrefix"];
-            NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
-            NSString *accessGroup = [appIdentifierPrefix stringByAppendingString:@"."];
-            accessGroup = [accessGroup stringByAppendingString:bundleIdentifier];
-
-            [[FIRAuth auth] useUserAccessGroup:accessGroup error:nil];
-        }@catch (NSException *exception) {
-
-        }
-
-
-
         shouldEstablishDirectChannel = [[[NSBundle mainBundle] objectForInfoDictionaryKey:@"shouldEstablishDirectChannel"] boolValue];
 
         // Set FCM messaging delegate
