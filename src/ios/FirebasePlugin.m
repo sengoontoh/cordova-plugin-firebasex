@@ -858,8 +858,7 @@ static NSMutableDictionary* firestoreListeners;
         FIRUser* user = [FIRAuth auth].currentUser;
         NSString *appIdentifierPrefix = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"AppIdentifierPrefix"];
         NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
-        NSString *accessGroup = [appIdentifierPrefix stringByAppendingString:@"."];
-        accessGroup = [accessGroup stringByAppendingString:bundleIdentifier];
+        NSString *accessGroup = [appIdentifierPrefix stringByAppendingString:bundleIdentifier];
 
         FIRUser *tempUser = [[FIRAuth auth] getStoredUserForAccessGroup:accessGroup error:nil];
 
@@ -889,9 +888,7 @@ static NSMutableDictionary* firestoreListeners;
     @try {
         NSString *appIdentifierPrefix = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"AppIdentifierPrefix"];
         NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
-        NSString *accessGroup = [appIdentifierPrefix stringByAppendingString:@"."];
-        accessGroup = [accessGroup stringByAppendingString:bundleIdentifier];
-
+        NSString *accessGroup = [appIdentifierPrefix stringByAppendingString:bundleIdentifier];
         FIRUser *user = [[FIRAuth auth] getStoredUserForAccessGroup:accessGroup error:nil];
 
         if(!user){
