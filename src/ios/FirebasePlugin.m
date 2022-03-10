@@ -218,7 +218,7 @@ static NSMutableDictionary* firestoreListeners;
     @try {
         [[FIRInstanceID instanceID] instanceIDWithHandler:^(FIRInstanceIDResult * _Nullable result,
                                                             NSError * _Nullable error) {
-        	NSString* token = nil;
+            NSString* token = nil;
             if (error == nil && result != nil && result.token != nil) {
                 token = result.token;
             }
@@ -852,10 +852,61 @@ static NSMutableDictionary* firestoreListeners;
     }
 }
 
+- (void)transferUserToKeychain:(CDVInvokedUrlCommand *)command {
+
+    @try {
+        FIRUser* user = [FIRAuth auth].currentUser;
+        NSString *appIdentifierPrefix = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"AppIdentifierPrefix"];
+        NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+        NSString *accessGroup = [appIdentifierPrefix stringByAppendingString:bundleIdentifier];
+
+        FIRUser *tempUser = [[FIRAuth auth] getStoredUserForAccessGroup:accessGroup error:nil];
+
+        if(tempUser) {
+            [self extractAndReturnUserInfo:command];
+            return;
+        } else if(user){
+            [[FIRAuth auth] useUserAccessGroup:accessGroup error:nil];
+            [FIRAuth.auth updateCurrentUser:user completion:^(NSError * _Nullable error) {
+                [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
+                return;
+            }];
+        }
+        if(!user){
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
+            return;
+        }
+        [self extractAndReturnUserInfo:command];
+
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
+- (void)getKeychainUser:(CDVInvokedUrlCommand *)command {
+
+    @try {
+        NSString *appIdentifierPrefix = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"AppIdentifierPrefix"];
+        NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+        NSString *accessGroup = [appIdentifierPrefix stringByAppendingString:bundleIdentifier];
+        FIRUser *user = [[FIRAuth auth] getStoredUserForAccessGroup:accessGroup error:nil];
+
+        if(!user){
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
+            return;
+        }
+        [self extractAndReturnUserInfo:command];
+
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
 - (void)getCurrentUser:(CDVInvokedUrlCommand *)command {
 
     @try {
         FIRUser* user = [FIRAuth auth].currentUser;
+
         if(!user){
             [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
             return;
@@ -2476,28 +2527,28 @@ static NSMutableDictionary* firestoreListeners;
 
 # pragma mark - Stubs
 - (void)createChannel:(CDVInvokedUrlCommand *)command {
-	[self.commandDelegate runInBackground:^{
+    [self.commandDelegate runInBackground:^{
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
 }
 
 - (void)setDefaultChannel:(CDVInvokedUrlCommand *)command {
-	[self.commandDelegate runInBackground:^{
+    [self.commandDelegate runInBackground:^{
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
 }
 
 - (void)deleteChannel:(CDVInvokedUrlCommand *)command {
-	[self.commandDelegate runInBackground:^{
+    [self.commandDelegate runInBackground:^{
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
 }
 
 - (void)listChannels:(CDVInvokedUrlCommand *)command {
-	[self.commandDelegate runInBackground:^{
+    [self.commandDelegate runInBackground:^{
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];

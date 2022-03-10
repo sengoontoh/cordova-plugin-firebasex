@@ -202,7 +202,7 @@ exports.isPerformanceCollectionEnabled = function (success, error) {
 exports.clearAllNotifications = function (success, error) {
   exec(success, error, "FirebasePlugin", "clearAllNotifications", []);
 };
-  
+
 // Crashlytics
 exports.setCrashlyticsCollectionEnabled = function (enabled, success, error) {
     exec(success, error, "FirebasePlugin", "setCrashlyticsCollectionEnabled", [!!enabled]);
@@ -336,6 +336,21 @@ exports.getCurrentUser = function (success, error) {
     }, error, "FirebasePlugin", "getCurrentUser", []);
 };
 
+exports.getKeychainUser = function (success, error) {
+    exec(function(user){
+        user.emailIsVerified = ensureBoolean(user.emailIsVerified);
+        success(user);
+    }, error, "FirebasePlugin", "getKeychainUser", []);
+};
+
+
+exports.transferUserToKeychain = function (success, error) {
+    exec(function(user){
+        success(user);
+    }, error, "FirebasePlugin", "transferUserToKeychain", []);
+};
+
+
 exports.reloadCurrentUser = function (success, error) {
     exec(function(user){
         user.emailIsVerified = ensureBoolean(user.emailIsVerified);
@@ -352,6 +367,8 @@ exports.updateUserEmail = function (email, success, error) {
     if(typeof email !== 'string' || !email) return error("'email' must be a valid email address");
     exec(success, error, "FirebasePlugin", "updateUserEmail", [email]);
 };
+
+
 
 exports.getIdToken = function (success, error) {
     exec(success, error, "FirebasePlugin", "getIdToken", []);
