@@ -862,7 +862,7 @@ static NSMutableDictionary* firestoreListeners;
 
         FIRUser *tempUser = [[FIRAuth auth] getStoredUserForAccessGroup:accessGroup error:nil];
 
-        if(tempUser) {
+        if(tempUser && [tempUser.uid isEqualToString:user.uid]) {
             [self extractAndReturnUserInfo:command];
             return;
         } else if(user){
@@ -886,14 +886,21 @@ static NSMutableDictionary* firestoreListeners;
 - (void)getKeychainUser:(CDVInvokedUrlCommand *)command {
 
     @try {
+        FIRUser* user = [FIRAuth auth].currentUser;
         NSString *appIdentifierPrefix = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"AppIdentifierPrefix"];
         NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
         NSString *accessGroup = [appIdentifierPrefix stringByAppendingString:bundleIdentifier];
-        FIRUser *user = [[FIRAuth auth] getStoredUserForAccessGroup:accessGroup error:nil];
+        FIRUser *tempUser = [[FIRAuth auth] getStoredUserForAccessGroup:accessGroup error:nil];
 
-        if(!user){
+        if((!tempUser)){
             [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
             return;
+        } else if ((tempUser && ![tempUser.uid isEqualToString:user.uid])){
+            [[FIRAuth auth] updateCurrentUser:user completion:^(NSError * _Nullable error) {
+                [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
+                return;
+            }];
+
         }
         [self extractAndReturnUserInfo:command];
 
