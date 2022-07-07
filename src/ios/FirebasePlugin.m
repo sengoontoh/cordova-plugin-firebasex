@@ -1213,7 +1213,9 @@ static NSMutableDictionary* firestoreListeners;
             NSString* name = [command.arguments objectAtIndex:0];
             NSDictionary *parameters = [command argumentAtIndex:1];
 
-            [FIRAnalytics logEventWithName:name parameters:parameters];
+            NSDictionary *formattedObject = [self formatEventObject: parameters];
+
+            [FIRAnalytics logEventWithName:name parameters:formattedObject];
 
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -1221,6 +1223,40 @@ static NSMutableDictionary* firestoreListeners;
             [self handlePluginExceptionWithContext:exception :command];
         }
     }];
+}
+
+- (NSDictionary*) formatEventObject: (NSDictionary*) parameters {
+    NSMutableDictionary* mutableDictionary = [[NSMutableDictionary alloc] init];
+    NSEnumerator* enumerator = [parameters keyEnumerator];
+    NSString* key;
+    
+    while ((key = [enumerator nextObject])) {
+        id value = [parameters objectForKey:key];
+        
+        @try {
+            if(value == @YES) {
+                // TRUE
+                [mutableDictionary setObject:@"true" forKey:key];
+            } else if (value == @NO) {
+                // FALSE
+                [mutableDictionary setObject:@"false" forKey:key];
+            } else if ([value isKindOfClass: [NSNumber class]]) {
+                // NUMBER
+                NSString* stringValue = [value stringValue];
+                NSInteger integerValue = [stringValue integerValue];
+                
+                [mutableDictionary setObject:[NSNumber numberWithInteger:integerValue] forKey:key];
+            } else if ([value isKindOfClass: [NSString class]]) {
+                // STRING
+                [mutableDictionary setObject:value forKey:key];
+            }
+            
+        } @catch (NSException *exception) {
+            NSLog(@"Error in formatEventObject");
+        }
+    }
+    
+    return [mutableDictionary copy];
 }
 
 - (void)setScreenName:(CDVInvokedUrlCommand *)command {
