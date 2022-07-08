@@ -387,6 +387,9 @@ didDisconnectWithUser:(GIDGoogleUser *)user
     @try{
 
         if (![notification.request.trigger isKindOfClass:UNPushNotificationTrigger.class] && ![notification.request.trigger isKindOfClass:UNTimeIntervalNotificationTrigger.class]){
+            mutableUserInfo = [notification.request.content.userInfo mutableCopy];
+            [FirebasePlugin.firebasePlugin _logMessage:[NSString stringWithFormat:@"willPresentNotification: %@", mutableUserInfo]];
+            [FirebasePlugin.firebasePlugin sendNotification:mutableUserInfo];
             [FirebasePlugin.firebasePlugin _logError:@"willPresentNotification: aborting as not a supported UNNotificationTrigger"];
             return;
         }
@@ -454,7 +457,13 @@ didDisconnectWithUser:(GIDGoogleUser *)user
 {
     @try{
 
+
         if (![response.notification.request.trigger isKindOfClass:UNPushNotificationTrigger.class] && ![response.notification.request.trigger isKindOfClass:UNTimeIntervalNotificationTrigger.class]){
+            mutableUserInfo = [response.notification.request.content.userInfo mutableCopy];
+
+            [FirebasePlugin.firebasePlugin _logMessage:[NSString stringWithFormat:@"willPresentNotification: %@", mutableUserInfo]];
+            [FirebasePlugin.firebasePlugin sendNotification:mutableUserInfo];
+            completionHandler();
             [FirebasePlugin.firebasePlugin _logMessage:@"didReceiveNotificationResponse: aborting as not a supported UNNotificationTrigger"];
             return;
         }
