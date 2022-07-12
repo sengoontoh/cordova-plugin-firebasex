@@ -577,7 +577,18 @@ public class FirebasePlugin extends CordovaPlugin {
                 Set<String> keys = bundle.keySet();
                 for (String key : keys) {
                     try {
-                        json.put(key, bundle.get(key));
+                        if (bundle.get(key) instanceof Bundle) {
+                            Bundle subBundle = (Bundle) bundle.get(key);
+                            Set<String> subKeys = subBundle.keySet();
+
+                            JSONObject subObject = new JSONObject();
+                            for (String subKey : subKeys) {
+                                subObject.put(subKey, subBundle.get(subKey));
+                            }
+                            json.put(key, subObject);
+                        } else {
+                            json.put(key, bundle.get(key));
+                        }
                     } catch (JSONException e) {
                         handleExceptionWithContext(e, callbackContext);
                         return;
@@ -1232,7 +1243,7 @@ public class FirebasePlugin extends CordovaPlugin {
 
     private void getIdToken(final CallbackContext callbackContext, final JSONArray args) throws Exception {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        
+
         user.getIdToken(true).addOnSuccessListener(new OnSuccessListener<GetTokenResult>() {
            @Override
            public void onSuccess(GetTokenResult result) {
