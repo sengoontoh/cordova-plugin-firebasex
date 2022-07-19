@@ -389,8 +389,12 @@ didDisconnectWithUser:(GIDGoogleUser *)user
         if (![notification.request.trigger isKindOfClass:UNPushNotificationTrigger.class] && ![notification.request.trigger isKindOfClass:UNTimeIntervalNotificationTrigger.class]){
             mutableUserInfo = [notification.request.content.userInfo mutableCopy];
             [FirebasePlugin.firebasePlugin _logMessage:[NSString stringWithFormat:@"willPresentNotification: %@", mutableUserInfo]];
-            [FirebasePlugin.firebasePlugin sendNotification:mutableUserInfo];
-            [FirebasePlugin.firebasePlugin _logError:@"willPresentNotification: aborting as not a supported UNNotificationTrigger"];
+            NSNumber* priority = [mutableUserInfo objectForKey:@"priority"];
+            if (priority > 0) {
+                completionHandler(UNNotificationPresentationOptionBadge|UNNotificationPresentationOptionSound|UNNotificationPresentationOptionAlert);
+            } else {
+                [FirebasePlugin.firebasePlugin sendNotification:mutableUserInfo];
+            }
             return;
         }
 
