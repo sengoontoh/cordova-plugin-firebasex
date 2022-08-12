@@ -94,6 +94,16 @@ static bool shouldEstablishDirectChannel = false;
 
         authStateChangeListener = [[FIRAuth auth] addAuthStateDidChangeListener:^(FIRAuth * _Nonnull auth, FIRUser * _Nullable user) {
             @try {
+                @try {
+                    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+
+                    NSUserDefaults* preferences = [[[NSUserDefaults alloc] init] initWithSuiteName:[@"group." stringByAppendingString:bundleIdentifier]];
+                    [preferences setBool:user != nil forKey:@"signedIn"];
+                    [preferences synchronize];
+                }@catch(NSException *exception) {
+
+                }
+
                 if(!authStateChangeListenerInitialized){
                     authStateChangeListenerInitialized = true;
                 }else{
