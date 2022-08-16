@@ -374,6 +374,10 @@ exports.getIdToken = function (success, error) {
     exec(success, error, "FirebasePlugin", "getIdToken", []);
 };
 
+exports.getIdTokenWithoutRefresh = function (success, error) {
+    exec(success, error, "FirebasePlugin", "getIdTokenWithoutRefresh", []);
+};
+
 exports.sendUserEmailVerification = function (success, error) {
     exec(success, error, "FirebasePlugin", "sendUserEmailVerification", []);
 };

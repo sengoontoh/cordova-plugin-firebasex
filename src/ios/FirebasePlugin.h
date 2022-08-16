@@ -28,7 +28,8 @@
 - (void)getCurrentUser:(CDVInvokedUrlCommand*)command;
 - (void)getKeychainUser:(CDVInvokedUrlCommand*)command;
 - (void)reloadCurrentUser:(CDVInvokedUrlCommand*)command;
-- (void) getIdToken:(CDVInvokedUrlCommand*)command;
+- (void)getIdToken:(CDVInvokedUrlCommand*)command;
+- (void)getIdTokenWithoutRefresh:(CDVInvokedUrlCommand*)command;
 - (void)updateUserProfile:(CDVInvokedUrlCommand*)command;
 - (void)updateUserEmail:(CDVInvokedUrlCommand*)command;
 - (void)sendUserEmailVerification:(CDVInvokedUrlCommand*)command;
