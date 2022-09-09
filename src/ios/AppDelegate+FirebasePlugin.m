@@ -92,19 +92,19 @@ static bool shouldEstablishDirectChannel = false;
         [GIDSignIn sharedInstance].clientID = [FIRApp defaultApp].options.clientID;
         [GIDSignIn sharedInstance].delegate = self;
 
+        // Migrate signed user to shared keychain
+        FIRUser *user = [FIRAuth auth].currentUser;
+        NSString *appIdentifierPrefix = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"AppIdentifierPrefix"];
+        NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+        NSString *accessGroup = [appIdentifierPrefix stringByAppendingString:bundleIdentifier];
+        [[FIRAuth auth] useUserAccessGroup:accessGroup error:nil];
+        if (user != nil) {
+            [[FIRAuth auth] updateCurrentUser:user completion:nil];
+        }
+
         authStateChangeListener = [[FIRAuth auth] addAuthStateDidChangeListener:^(FIRAuth * _Nonnull auth, FIRUser * _Nullable user) {
             @try {
-                @try {
-                    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
-
-                    NSUserDefaults* preferences = [[[NSUserDefaults alloc] init] initWithSuiteName:[@"group." stringByAppendingString:bundleIdentifier]];
-                    [preferences setBool:user != nil forKey:@"signedIn"];
-                    [preferences synchronize];
-                }@catch(NSException *exception) {
-
-                }
-
-                if(!authStateChangeListenerInitialized){
+                if (!authStateChangeListenerInitialized){
                     authStateChangeListenerInitialized = true;
                 }else{
                     [FirebasePlugin.firebasePlugin executeGlobalJavascript:[NSString stringWithFormat:@"FirebasePlugin._onAuthStateChange(%@)", (user != nil ? @"true": @"false")]];
@@ -120,10 +120,9 @@ static bool shouldEstablishDirectChannel = false;
 
         self.applicationInBackground = @(YES);
 
-    }@catch (NSException *exception) {
+    } @catch (NSException *exception) {
         [FirebasePlugin.firebasePlugin handlePluginExceptionWithoutContext:exception];
     }
-
     return YES;
 }
 

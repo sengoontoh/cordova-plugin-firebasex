@@ -26,7 +26,6 @@
 - (void)isUserSignedIn:(CDVInvokedUrlCommand*)command;
 - (void)signOutUser:(CDVInvokedUrlCommand*)command;
 - (void)getCurrentUser:(CDVInvokedUrlCommand*)command;
-- (void)getKeychainUser:(CDVInvokedUrlCommand*)command;
 - (void)reloadCurrentUser:(CDVInvokedUrlCommand*)command;
 - (void) getIdToken:(CDVInvokedUrlCommand*)command;
 - (void)updateUserProfile:(CDVInvokedUrlCommand*)command;
@@ -37,7 +36,6 @@
 - (void)deleteUser:(CDVInvokedUrlCommand*)command;
 - (void)createiAndLinkUserWithEmailAndPassword:(CDVInvokedUrlCommand*)command;
 - (void)reauthenticateWithPassword:(CDVInvokedUrlCommand*)command;
-- (void)transferUserToKeychain:(CDVInvokedUrlCommand*)command;
 
 
 // Remote notifications
