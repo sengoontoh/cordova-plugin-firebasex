@@ -95,7 +95,11 @@ static bool shouldEstablishDirectChannel = false;
         // Migrate signed user to shared keychain
         FIRUser *user = [FIRAuth auth].currentUser;
         KeyChainAccessGroupInfo *info = [KeyChainAccessGroupHelper getAccessGroupInfo];
-        [[FIRAuth auth] useUserAccessGroup:accessGroup error:nil];
+        if (info != nil) {
+            [[FIRAuth auth] useUserAccessGroup:info.rawValue error:nil];
+        } else {
+            [[FIRAuth auth] useUserAccessGroup:@"APU8L33GKN.com.huckleberry-labs.app" error:nil];
+        }
         if (user != nil) {
             [[FIRAuth auth] updateCurrentUser:user completion:nil];
         }
