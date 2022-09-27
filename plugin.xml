@@ -131,7 +131,8 @@
       </array>
     </config-file>
 		<resource-file src="src/ios/GoogleService-Info.plist" />
-
+        
+        <source-file src="src/ios/KeychainAccessGroupHelper.swift" />
 		<header-file src="src/ios/AppDelegate+FirebasePlugin.h" />
 		<source-file src="src/ios/AppDelegate+FirebasePlugin.m" />
 		<header-file src="src/ios/FirebasePlugin.h" />
