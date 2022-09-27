@@ -2,7 +2,7 @@
 #import "FirebasePlugin.h"
 #import "Firebase.h"
 #import <objc/runtime.h>
-
+#import <Huckleberry-Swift.h>
 
 @import UserNotifications;
 @import FirebaseFirestore;
@@ -94,9 +94,7 @@ static bool shouldEstablishDirectChannel = false;
 
         // Migrate signed user to shared keychain
         FIRUser *user = [FIRAuth auth].currentUser;
-        NSString *appIdentifierPrefix = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"AppIdentifierPrefix"];
-        NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
-        NSString *accessGroup = [appIdentifierPrefix stringByAppendingString:bundleIdentifier];
+        KeyChainAccessGroupInfo *info = [KeyChainAccessGroupHelper getAccessGroupInfo];
         [[FIRAuth auth] useUserAccessGroup:accessGroup error:nil];
         if (user != nil) {
             [[FIRAuth auth] updateCurrentUser:user completion:nil];
