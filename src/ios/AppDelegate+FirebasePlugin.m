@@ -2,7 +2,6 @@
 #import "FirebasePlugin.h"
 #import "Firebase.h"
 #import <objc/runtime.h>
-#import <Huckleberry-Swift.h>
 
 @import UserNotifications;
 @import FirebaseFirestore;
@@ -94,12 +93,8 @@ static bool shouldEstablishDirectChannel = false;
 
         // Migrate signed user to shared keychain
         FIRUser *user = [FIRAuth auth].currentUser;
-        KeyChainAccessGroupInfo *info = [KeyChainAccessGroupHelper getAccessGroupInfo];
-        if (info != nil) {
-            [[FIRAuth auth] useUserAccessGroup:info.rawValue error:nil];
-        } else {
-            [[FIRAuth auth] useUserAccessGroup:@"APU8L33GKN.com.huckleberry-labs.app" error:nil];
-        }
+        NSString *keychainAccessGroup = [self keychainAccessGroup];
+        [[FIRAuth auth] useUserAccessGroup:keychainAccessGroup error:nil];
         if (user != nil) {
             [[FIRAuth auth] updateCurrentUser:user completion:nil];
         }
@@ -595,6 +590,28 @@ didDisconnectWithUser:(GIDGoogleUser *)user
 
 - (nonnull ASPresentationAnchor)presentationAnchorForAuthorizationController:(nonnull ASAuthorizationController *)controller  API_AVAILABLE(ios(13.0)){
     return self.viewController.view.window;
+}
+
+
+- (NSString *)keychainAccessGroup {
+    NSString *tempAccountName = @"APU8L33GKN";
+    NSDictionary *query = @{
+        (__bridge NSString *)kSecClass : (__bridge NSString *)kSecClassGenericPassword,
+        (__bridge NSString *)kSecAttrAccount : tempAccountName,
+        (__bridge NSString *)kSecAttrService : @"",
+        (__bridge NSString *)kSecReturnAttributes: (__bridge NSNumber *)kCFBooleanTrue,
+    };
+    CFDictionaryRef result = nil;
+    OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)query, (CFTypeRef *)&result);
+    if (status == errSecItemNotFound)
+        status = SecItemAdd((__bridge CFDictionaryRef)query, (CFTypeRef *)&result);
+    if (status != errSecSuccess) {
+        return nil;
+    }
+    status = SecItemDelete((__bridge CFDictionaryRef)query); // remove temp item
+    NSDictionary *dict = (__bridge_transfer NSDictionary *)result;
+    NSString *accessGroup = dict[(__bridge NSString *)kSecAttrAccessGroup];
+    return accessGroup ? : @"APU8L33GKN.com.huckleberry-labs.app";
 }
 
 @end
