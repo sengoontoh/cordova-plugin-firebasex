@@ -2,6 +2,9 @@
 #import "AppDelegate.h"
 #import "Firebase.h"
 @import FirebaseFirestore;
+@import FirebaseCore;
+@import FirebaseAuth;
+@import FirebaseFunctions;
 
 @interface FirebasePlugin : CDVPlugin
 

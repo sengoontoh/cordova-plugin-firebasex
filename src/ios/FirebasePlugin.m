@@ -4,12 +4,7 @@
 #import <Cordova/CDV.h>
 #import "AppDelegate.h"
 #import <GoogleSignIn/GoogleSignIn.h>
-@import FirebaseMessaging;
-@import FirebaseAnalytics;
-@import FirebaseRemoteConfig;
-@import FirebasePerformance;
-@import FirebaseAuth;
-@import FirebaseFunctions;
+
 @import UserNotifications;
 @import CommonCrypto;
 @import AuthenticationServices;
@@ -52,7 +47,7 @@ static NSMutableDictionary* traces;
     return currentNonce;
 }
 
-+ (void) setFirestore:(FIRFirestore*) firestoreInstance{
++ (void)setFirestore:(FIRFirestore*)firestoreInstance {
     firestore = firestoreInstance;
 }
 
@@ -74,7 +69,7 @@ static NSMutableDictionary* traces;
 - (void)pluginInitialize {
     NSLog(@"Starting Firebase plugin");
     firebasePlugin = self;
-
+    
     @try {
         preferences = [NSUserDefaults standardUserDefaults];
         googlePlist = [NSMutableDictionary dictionaryWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"GoogleService-Info" ofType:@"plist"]];
