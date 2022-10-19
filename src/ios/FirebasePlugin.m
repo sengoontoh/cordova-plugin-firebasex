@@ -8,6 +8,10 @@
 @import UserNotifications;
 @import CommonCrypto;
 @import AuthenticationServices;
+@import FirebaseMessaging;
+@import FirebaseAnalytics;
+@import FirebaseRemoteConfig;
+@import FirebasePerformance;
 
 @implementation FirebasePlugin
 

@@ -3,15 +3,13 @@
 #import "Firebase.h"
 #import <objc/runtime.h>
 
-@import UserNotifications;
 @import FirebaseFirestore;
 @import FirebaseFunctions;
 @import FirebaseCore;
 @import FirebaseAuth;
-@import FirebaseMessaging;
-@import FirebaseAnalytics;
-@import FirebaseRemoteConfig;
-@import FirebasePerformance;
+@import UserNotifications;
+@import CommonCrypto;
+@import AuthenticationServices;
 
 // Implement UNUserNotificationCenterDelegate to receive display notification via APNS for devices running iOS 10 and above.
 // Implement FIRMessagingDelegate to receive data message via FCM for devices running iOS 10 and above.
