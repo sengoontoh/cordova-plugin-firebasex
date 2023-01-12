@@ -323,16 +323,15 @@ static bool authStateChangeListenerInitialized = false;
     @try{
 
         if (![notification.request.trigger isKindOfClass:UNPushNotificationTrigger.class] && ![notification.request.trigger isKindOfClass:UNTimeIntervalNotificationTrigger.class]){
-            if (_previousDelegate) {
-                // bubbling notification
-                [_previousDelegate userNotificationCenter:center
-                          willPresentNotification:notification
-                            withCompletionHandler:completionHandler];
-                return;
+            mutableUserInfo = [notification.request.content.userInfo mutableCopy];
+            [FirebasePlugin.firebasePlugin _logMessage:[NSString stringWithFormat:@"willPresentNotification: %@", mutableUserInfo]];
+            NSNumber* priority = [mutableUserInfo objectForKey:@"priority"];
+            if (priority > 0) {
+                completionHandler(UNNotificationPresentationOptionBadge|UNNotificationPresentationOptionSound|UNNotificationPresentationOptionAlert);
             } else {
-                [FirebasePlugin.firebasePlugin _logError:@"willPresentNotification: aborting as not a supported UNNotificationTrigger"];
-                return;
+                [FirebasePlugin.firebasePlugin sendNotification:mutableUserInfo];
             }
+            return;
         }
         
         [[FIRMessaging messaging] appDidReceiveMessage:notification.request.content.userInfo];
@@ -397,18 +396,13 @@ static bool authStateChangeListenerInitialized = false;
           withCompletionHandler:(void (^)(void))completionHandler
 {
     @try{
-
         if (![response.notification.request.trigger isKindOfClass:UNPushNotificationTrigger.class] && ![response.notification.request.trigger isKindOfClass:UNTimeIntervalNotificationTrigger.class]){
-            if (_previousDelegate) {
-                // bubbling event
-                [_previousDelegate userNotificationCenter:center
-                               didReceiveNotificationResponse:response
-                            withCompletionHandler:completionHandler];
-                return;
-            } else {
-                [FirebasePlugin.firebasePlugin _logMessage:@"didReceiveNotificationResponse: aborting as not a supported UNNotificationTrigger"];
-                return;
-            }
+            mutableUserInfo = [response.notification.request.content.userInfo mutableCopy];
+            [FirebasePlugin.firebasePlugin _logMessage:[NSString stringWithFormat:@"willPresentNotification: %@", mutableUserInfo]];
+            [FirebasePlugin.firebasePlugin sendNotification:mutableUserInfo];
+            completionHandler();
+            [FirebasePlugin.firebasePlugin _logMessage:@"didReceiveNotificationResponse: aborting as not a supported UNNotificationTrigger"];
+            return;
         }
 
         [[FIRMessaging messaging] appDidReceiveMessage:response.notification.request.content.userInfo];
