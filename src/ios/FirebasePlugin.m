@@ -4,16 +4,6 @@
 #import <Cordova/CDV.h>
 #import "AppDelegate.h"
 #import <GoogleSignIn/GoogleSignIn.h>
-@import FirebaseMessaging;
-@import FirebaseAnalytics;
-@import FirebaseRemoteConfig;
-@import FirebasePerformance;
-@import FirebaseAuth;
-@import FirebaseFunctions;
-@import FirebaseStorage;
-@import UserNotifications;
-@import CommonCrypto;
-@import AuthenticationServices;
 
 @implementation FirebasePlugin
 
