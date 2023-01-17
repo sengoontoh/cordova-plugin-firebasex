@@ -131,7 +131,7 @@
       </array>
     </config-file>
 		<resource-file src="src/ios/GoogleService-Info.plist" />
-
+        
 		<header-file src="src/ios/AppDelegate+FirebasePlugin.h" />
 		<source-file src="src/ios/AppDelegate+FirebasePlugin.m" />
 		<header-file src="src/ios/FirebasePlugin.h" />
@@ -148,16 +148,16 @@
 				<source url="https://cdn.cocoapods.org/"/>
 			</config>
 			<pods use-frameworks="true">
-				<pod name="Firebase/Core" spec="6.33.0"/>
-				<pod name="Firebase/Auth" spec="6.33.0"/>
-				<pod name="Firebase/Messaging" spec="6.33.0"/>
-				<pod name="Firebase/Performance" spec="6.33.0"/>
-				<pod name="Firebase/RemoteConfig" spec="6.33.0"/>
-				<pod name="FirebaseFirestore" git="https://github.com/invertase/firestore-ios-sdk-frameworks.git" tag="6.33.0"/>
-				<pod name="Firebase/Crashlytics" spec="6.33.0"/>
-				<pod name="Firebase/Storage" spec="6.33.0"/>
-				<pod name="Firebase/Functions" spec="6.33.0"/>
-				<pod name="GoogleSignIn" spec="5.0.2"/>
+				<pod name="Firebase/Core" spec="10.3.0" />
+				<pod name="Firebase/Auth" spec="10.3.0" />
+				<pod name="Firebase/Messaging" spec="10.3.0" />
+				<pod name="Firebase/Performance" spec="10.3.0" />
+				<pod name="Firebase/RemoteConfig" spec="10.3.0" />
+				<pod name="Firebase/Firestore" spec="10.3.0" />
+				<pod name="Firebase/Crashlytics" spec="10.3.0" />
+				<pod name="Firebase/Storage" spec="10.3.0" />
+				<pod name="Firebase/Functions" spec="10.3.0" />
+                <pod name="GoogleSignIn" spec="6.2.4" />
 			</pods>
 		</podspec>
 
