@@ -10,6 +10,7 @@
 @import FirebasePerformance;
 @import FirebaseAuth;
 @import FirebaseFunctions;
+@import FirebaseStorage;
 @import UserNotifications;
 @import CommonCrypto;
 @import AuthenticationServices;
