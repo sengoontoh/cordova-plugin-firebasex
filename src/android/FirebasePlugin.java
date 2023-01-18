@@ -360,6 +360,8 @@ public class FirebasePlugin extends CordovaPlugin {
                 this.reloadCurrentUser(callbackContext, args);
             } else if (action.equals("getIdToken")) {
                 this.getIdToken(callbackContext, args);
+            } else if (action.equals("getIdTokenWithoutRefresh")) {
+                this.getIdTokenWithoutRefresh(callbackContext, args);
             } else if (action.equals("updateUserProfile")) {
                 this.updateUserProfile(callbackContext, args);
             } else if (action.equals("updateUserEmail")) {
@@ -577,7 +579,18 @@ public class FirebasePlugin extends CordovaPlugin {
                 Set<String> keys = bundle.keySet();
                 for (String key : keys) {
                     try {
-                        json.put(key, bundle.get(key));
+                        if (bundle.get(key) instanceof Bundle) {
+                            Bundle subBundle = (Bundle) bundle.get(key);
+                            Set<String> subKeys = subBundle.keySet();
+
+                            JSONObject subObject = new JSONObject();
+                            for (String subKey : subKeys) {
+                                subObject.put(subKey, subBundle.get(subKey));
+                            }
+                            json.put(key, subObject);
+                        } else {
+                            json.put(key, bundle.get(key));
+                        }
                     } catch (JSONException e) {
                         handleExceptionWithContext(e, callbackContext);
                         return;
@@ -1230,9 +1243,27 @@ public class FirebasePlugin extends CordovaPlugin {
         });
     }
 
+    private void getIdTokenWithoutRefresh(final CallbackContext callbackContext, final JSONArray args) throws Exception {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+        user.getIdToken(false).addOnSuccessListener(new OnSuccessListener<GetTokenResult>() {
+           @Override
+           public void onSuccess(GetTokenResult result) {
+               try {
+                   JSONObject returnResults = new JSONObject();
+                   String idToken = result.getToken();
+                   returnResults.put("idToken", idToken);
+                   callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, returnResults));
+               } catch (Exception e) {
+                   handleExceptionWithContext(e, callbackContext);
+               }
+           }
+       });
+    }
+
     private void getIdToken(final CallbackContext callbackContext, final JSONArray args) throws Exception {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        
+
         user.getIdToken(true).addOnSuccessListener(new OnSuccessListener<GetTokenResult>() {
            @Override
            public void onSuccess(GetTokenResult result) {

@@ -27,7 +27,8 @@
 - (void)signOutUser:(CDVInvokedUrlCommand*)command;
 - (void)getCurrentUser:(CDVInvokedUrlCommand*)command;
 - (void)reloadCurrentUser:(CDVInvokedUrlCommand*)command;
-- (void) getIdToken:(CDVInvokedUrlCommand*)command;
+- (void)getIdToken:(CDVInvokedUrlCommand*)command;
+- (void)getIdTokenWithoutRefresh:(CDVInvokedUrlCommand*)command;
 - (void)updateUserProfile:(CDVInvokedUrlCommand*)command;
 - (void)updateUserEmail:(CDVInvokedUrlCommand*)command;
 - (void)sendUserEmailVerification:(CDVInvokedUrlCommand*)command;
@@ -65,6 +66,7 @@
 - (void)setScreenName:(CDVInvokedUrlCommand*)command;
 - (void)setUserId:(CDVInvokedUrlCommand*)command;
 - (void)setUserProperty:(CDVInvokedUrlCommand*)command;
+- (NSDictionary *)formatEventObject: (NSDictionary *)parameters;
 
 // Crashlytics
 - (void)setCrashlyticsCollectionEnabled:(CDVInvokedUrlCommand*)command;
