@@ -71,7 +71,7 @@ static NSMutableDictionary* traces;
         googlePlist = [NSMutableDictionary dictionaryWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"GoogleService-Info" ofType:@"plist"]];
 
         [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationLaunchedWithUrl:) name:CDVPluginHandleOpenURLNotification object:nil];
-        
+
         if([self getGooglePlistFlagWithDefaultValue:FirebaseCrashlyticsCollectionEnabled defaultValue:YES]){
             [self setPreferenceFlag:FIREBASE_CRASHLYTICS_COLLECTION_ENABLED flag:YES];
         }
@@ -1115,17 +1115,29 @@ static NSMutableDictionary* traces;
     [userInfo setValue:user.photoURL ? user.photoURL.absoluteString : nil forKey:@"photoUrl"];
     [userInfo setValue:user.uid forKey:@"uid"];
     [userInfo setValue:@(user.isAnonymous ? true : false) forKey:@"isAnonymous"];
-    [user getIDTokenWithCompletion:^(NSString * _Nullable token, NSError * _Nullable error) {
-        if(error == nil){
-            [userInfo setValue:token forKey:@"idToken"];
-        }
-        [user getIDTokenResultWithCompletion:^(FIRAuthTokenResult * _Nullable tokenResult, NSError * _Nullable error) {
-            if(error == nil){
-                [userInfo setValue:tokenResult.signInProvider forKey:@"providerId"];
-            }
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo] callbackId:command.callbackId];
-        }];
-    }];
+    NSMutableArray *providers=[NSMutableArray new];
+    for (id<FIRUserInfo> item in user.providerData) {
+      NSMutableDictionary* providerInfo = [NSMutableDictionary new];
+      [providerInfo setValue:item.providerID forKey:@"providerId"];
+      [providerInfo setValue:item.displayName forKey:@"displayName"];
+      [providerInfo setValue:item.uid forKey:@"userID"];
+      [providerInfo setValue:item.email forKey:@"email"];
+      [providers addObject:providerInfo];
+    }
+    [userInfo setValue:providers forKey:@"providerData"];
+
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo] callbackId:command.callbackId];
+//    [user getIDTokenWithCompletion:^(NSString * _Nullable token, NSError * _Nullable error) {
+//        if(error == nil){
+//            [userInfo setValue:token forKey:@"idToken"];
+//        }
+//        [user getIDTokenResultWithCompletion:^(FIRAuthTokenResult * _Nullable tokenResult, NSError * _Nullable error) {
+//            if(error == nil){
+//                [userInfo setValue:tokenResult.signInProvider forKey:@"providerId"];
+//            }
+//            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo] callbackId:command.callbackId];
+//        }];
+//    }];
 }
 
 - (void)updateUserProfile:(CDVInvokedUrlCommand*)command {
@@ -1983,7 +1995,7 @@ static NSMutableDictionary* traces;
 
             NSMutableDictionary *document_mutable = [document mutableCopy];
 
-            if(timestamp){                
+            if(timestamp){
                 document_mutable[@"created"] = [FIRTimestamp timestampWithDate:[NSDate date]];
                 document_mutable[@"lastUpdate"] = [FIRTimestamp timestampWithDate:[NSDate date]];
             }
