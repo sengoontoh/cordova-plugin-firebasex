@@ -3078,6 +3078,7 @@ Adds a new document to a Firestore collection, which will be allocated an auto-g
 - {string} collection - name of top-level collection to add document to.
 - {function} success - callback function to call on successfully adding the document.
 Will be passed a {string} argument containing the auto-generated document ID that the document was stored against.
+- {boolean} timestamp - Whether we should include lastUpdated & created fields
 - {function} error - callback function which will be passed a {string} error message as an argument.
 
 ```javascript
@@ -3089,7 +3090,7 @@ var document = {
     }
 };
 var collection = "my_collection";
-FirebasePlugin.addDocumentToFirestoreCollection(document, collection, function(documentId){
+FirebasePlugin.addDocumentToFirestoreCollection(document, collection, timestamp, function(documentId){
     console.log("Successfully added document with id="+documentId);
 }, function(error){
     console.error("Error adding document: "+error);
@@ -3103,6 +3104,7 @@ Sets (adds/replaces) a document with the given ID in a Firestore collection.
 - {string} documentId - document ID to use when setting document in the collection.
 - {object} document - document object to set in collection.
 - {string} collection - name of top-level collection to set document in.
+- {boolean} timestamp - Whether we should include lastUpdated & created fields
 - {function} success - callback function to call on successfully setting the document.
 - {function} error - callback function which will be passed a {string} error message as an argument.
 
@@ -3116,7 +3118,7 @@ var document = {
     }
 };
 var collection = "my_collection";
-FirebasePlugin.setDocumentInFirestoreCollection(documentId, document, collection, function(){
+FirebasePlugin.setDocumentInFirestoreCollection(documentId, document, collection, timestamp, function(){
     console.log("Successfully set document with id="+documentId);
 }, function(error){
     console.error("Error setting document: "+error);
@@ -3159,6 +3161,7 @@ If the no document with the specified ID exists in the collection, an error will
 - {string} documentId - document ID of the document to update.
 - {object} document - entire document or document fragment to update existing document with.
 - {string} collection - name of top-level collection to update document in.
+- {boolean} timestamp - Whether we should include lastUpdated & created fields
 - {function} success - callback function to call on successfully updating the document.
 - {function} error - callback function which will be passed a {string} error message as an argument.
 
@@ -3169,7 +3172,7 @@ var documentFragment = {
     "a_new_string": "bar"
 };
 var collection = "my_collection";
-FirebasePlugin.updateDocumentInFirestoreCollection(documentId, documentFragment, collection, function(){
+FirebasePlugin.updateDocumentInFirestoreCollection(documentId, documentFragment, collection, timestamp, function(){
     console.log("Successfully updated document with id="+documentId);
 }, function(error){
     console.error("Error updating document: "+error);
