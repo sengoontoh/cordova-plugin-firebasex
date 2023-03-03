@@ -4,25 +4,15 @@
 #import <Cordova/CDV.h>
 #import "AppDelegate.h"
 #import <GoogleSignIn/GoogleSignIn.h>
-@import FirebaseInstanceID;
-@import FirebaseMessaging;
-@import FirebaseAnalytics;
-@import FirebaseRemoteConfig;
-@import FirebasePerformance;
-@import FirebaseAuth;
-@import UserNotifications;
-@import CommonCrypto;
-@import AuthenticationServices;
 
 @implementation FirebasePlugin
 
+@synthesize openSettingsCallbackId;
 @synthesize notificationCallbackId;
 @synthesize tokenRefreshCallbackId;
 @synthesize apnsTokenRefreshCallbackId;
-@synthesize googleSignInCallbackId;
 @synthesize appleSignInCallbackId;
 @synthesize notificationStack;
-@synthesize traces;
 
 static NSString*const LOG_TAG = @"FirebasePlugin[native]";
 static NSInteger const kNotificationStackSize = 10;
@@ -33,6 +23,7 @@ static NSString*const FIREBASE_PERFORMANCE_COLLECTION_ENABLED = @"FIREBASE_PERFO
 
 static FirebasePlugin* firebasePlugin;
 static BOOL registeredForRemoteNotifications = NO;
+static BOOL openSettingsEmitted = NO;
 static NSMutableDictionary* authCredentials;
 static NSString* currentNonce; // used for Apple Sign In
 static FIRFirestore* firestore;
@@ -41,7 +32,8 @@ static FIRFunctions* functions;
 static NSUserDefaults* preferences;
 static NSDictionary* googlePlist;
 static NSMutableDictionary* firestoreListeners;
-
+static NSString* currentInstallationId;
+static NSMutableDictionary* traces;
 
 + (FirebasePlugin*) firebasePlugin {
     return firebasePlugin;
@@ -55,12 +47,18 @@ static NSMutableDictionary* firestoreListeners;
     firestore = firestoreInstance;
 }
 
-+ (void) setStorage:(FIRStorage*) storageInstance{
++ (void)setStorage:(FIRStorage*)storageInstance {
     storage = storageInstance;
 }
 
-+ (void) setFunctions:(FIRFunctions*) functionsInstance{
++ (void)setFunctions:(FIRFunctions*)functionsInstance {
     functions = functionsInstance;
+}
+
+- (void)applicationLaunchedWithUrl:(NSNotification*)notification
+{
+    NSURL* url = [notification object];
+    [[GIDSignIn sharedInstance] handleURL:url];
 }
 
 // @override abstract
@@ -71,6 +69,8 @@ static NSMutableDictionary* firestoreListeners;
     @try {
         preferences = [NSUserDefaults standardUserDefaults];
         googlePlist = [NSMutableDictionary dictionaryWithContentsOfFile:[[NSBundle mainBundle] pathForResource:@"GoogleService-Info" ofType:@"plist"]];
+
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationLaunchedWithUrl:) name:CDVPluginHandleOpenURLNotification object:nil];
 
         if([self getGooglePlistFlagWithDefaultValue:FirebaseCrashlyticsCollectionEnabled defaultValue:YES]){
             [self setPreferenceFlag:FIREBASE_CRASHLYTICS_COLLECTION_ENABLED flag:YES];
@@ -90,14 +90,10 @@ static NSMutableDictionary* firestoreListeners;
         // Check for permission and register for remote notifications if granted
         [self _hasPermission:^(BOOL result) {}];
 
-        [GIDSignIn sharedInstance].presentingViewController = self.viewController;
 
-        @synchronized (authCredentials) {
-            authCredentials = [[NSMutableDictionary alloc] init];
-        }
-        @synchronized (firestoreListeners) {
-            firestoreListeners = [[NSMutableDictionary alloc] init];
-        }
+        authCredentials = [[NSMutableDictionary alloc] init];
+        firestoreListeners = [[NSMutableDictionary alloc] init];
+        traces = [[NSMutableDictionary alloc] init];
     }@catch (NSException *exception) {
         [self handlePluginExceptionWithoutContext:exception];
     }
@@ -145,6 +141,16 @@ static NSMutableDictionary* firestoreListeners;
 
         // Initialize categories
         [[UNUserNotificationCenter currentNotificationCenter] setNotificationCategories:categories];
+
+        // Initialize installation ID change listner
+        __weak __auto_type weakSelf = self;
+        self.installationIDObserver = [[NSNotificationCenter defaultCenter]
+                addObserverForName: FIRInstallationIDDidChangeNotification
+                            object:nil
+                             queue:nil
+                        usingBlock:^(NSNotification * _Nonnull notification) {
+            [weakSelf sendNewInstallationId];
+        }];
     }@catch (NSException *exception) {
         [self handlePluginExceptionWithoutContext:exception];
     }
@@ -156,6 +162,9 @@ static NSMutableDictionary* firestoreListeners;
     [[GIDSignIn sharedInstance] handleURL:url];
 }
 
+/*************************************************/
+#pragma mark - plugin API
+/*************************************************/
 - (void)setAutoInitEnabled:(CDVInvokedUrlCommand *)command {
     @try {
         bool enabled = [[command.arguments objectAtIndex:0] boolValue];
@@ -176,7 +185,6 @@ static NSMutableDictionary* firestoreListeners;
 
 - (void)isAutoInitEnabled:(CDVInvokedUrlCommand *)command {
     @try {
-
         [self runOnMainThread:^{
             @try {
                  bool enabled =[FIRMessaging messaging].isAutoInitEnabled;
@@ -197,35 +205,26 @@ static NSMutableDictionary* firestoreListeners;
  */
 
 - (void)getId:(CDVInvokedUrlCommand *)command {
-    __block CDVPluginResult *pluginResult;
-
-    FIRInstanceIDHandler handler = ^(NSString *_Nullable instID, NSError *_Nullable error) {
-        @try {
-            [self handleStringResultWithPotentialError:error command:command result:instID];
-        }@catch (NSException *exception) {
-            [self handlePluginExceptionWithContext:exception :command];
-        }
-    };
-
-    @try {
-        [[FIRInstanceID instanceID] getIDWithHandler:handler];
-    }@catch (NSException *exception) {
-        [self handlePluginExceptionWithContext:exception :command];
-    }
+    [self getInstallationId:command];
 }
 
 - (void)getToken:(CDVInvokedUrlCommand *)command {
+    [self _getToken:^(NSString *token, NSError *error) {
+        [self handleStringResultWithPotentialError:error command:command result:token];
+    }];
+}
+
+-(void)_getToken:(void (^)(NSString *token, NSError *error))completeBlock {
     @try {
-        [[FIRInstanceID instanceID] instanceIDWithHandler:^(FIRInstanceIDResult * _Nullable result,
-                                                            NSError * _Nullable error) {
-            NSString* token = nil;
-            if (error == nil && result != nil && result.token != nil) {
-                token = result.token;
+        [[FIRMessaging messaging] tokenWithCompletion:^(NSString *token, NSError *error) {
+            @try {
+                completeBlock(token, error);
+            }@catch (NSException *exception) {
+                [self handlePluginExceptionWithoutContext:exception];
             }
-            [self handleStringResultWithPotentialError:error command:command result:token];
         }];
     }@catch (NSException *exception) {
-        [self handlePluginExceptionWithContext:exception :command];
+        [self handlePluginExceptionWithoutContext:exception];
     }
 }
 
@@ -305,7 +304,14 @@ static NSMutableDictionary* firestoreListeners;
                     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
                 }else{
                     [UNUserNotificationCenter currentNotificationCenter].delegate = (id<UNUserNotificationCenterDelegate> _Nullable) self;
+                    BOOL requestWithProvidesAppNotificationSettings = [[command argumentAtIndex:0] boolValue];
                     UNAuthorizationOptions authOptions = UNAuthorizationOptionAlert|UNAuthorizationOptionSound|UNAuthorizationOptionBadge;
+                    if (@available(iOS 12.0, *)) {
+                        if(requestWithProvidesAppNotificationSettings) {
+                            authOptions = authOptions|UNAuthorizationOptionProvidesAppNotificationSettings;
+                        }
+                    }
+
                     [[UNUserNotificationCenter currentNotificationCenter]
                      requestAuthorizationWithOptions:authOptions
                      completionHandler:^(BOOL granted, NSError * _Nullable error) {
@@ -326,6 +332,78 @@ static NSMutableDictionary* firestoreListeners;
                 [self handlePluginExceptionWithContext:exception :command];
             }
         }];
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
+- (void)hasCriticalPermission:(CDVInvokedUrlCommand *)command {
+    @try {
+        [self _hasCriticalPermission:^(BOOL enabled) {
+            CDVPluginResult *commandResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:enabled];
+            [self.commandDelegate sendPluginResult:commandResult callbackId:command.callbackId];
+        }];
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
+- (void)_hasCriticalPermission:(void (^)(BOOL result))completeBlock {
+    @try {
+        if (@available(iOS 12.0, *)) {
+            [[UNUserNotificationCenter currentNotificationCenter] getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings * _Nonnull settings) {
+                @try {
+                    BOOL enabled = NO;
+                    if (settings.criticalAlertSetting == UNNotificationSettingEnabled) {
+                        enabled = YES;
+                        [self registerForRemoteNotifications];
+                    }
+                    NSLog(@"_hasCriticalPermission: %@", enabled ? @"YES" : @"NO");
+                    completeBlock(enabled);
+                }@catch (NSException *exception) {
+                    [self handlePluginExceptionWithoutContext:exception];
+                }
+            }];
+        }else{
+            completeBlock(NO);
+        }
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithoutContext:exception];
+    }
+}
+
+- (void)grantCriticalPermission:(CDVInvokedUrlCommand *)command {
+    NSLog(@"grantCriticalPermission");
+    @try {
+        if (@available(iOS 12.0, *)) {
+            [self _hasCriticalPermission:^(BOOL enabled) {
+                @try {
+                    if(enabled){
+                        NSString* message = @"Critical permission is already granted - call hasCriticalPermission() to check before calling grantCriticalPermission()";
+                        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:message];
+                        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                    }else{
+                        [UNUserNotificationCenter currentNotificationCenter].delegate = (id<UNUserNotificationCenterDelegate> _Nullable) self;
+                        UNAuthorizationOptions authOptions = UNAuthorizationOptionCriticalAlert;
+
+                        [[UNUserNotificationCenter currentNotificationCenter]
+                         requestAuthorizationWithOptions:authOptions
+                         completionHandler:^(BOOL granted, NSError * _Nullable error) {
+                            @try {
+                                NSLog(@"requestAuthorizationWithOptions: granted=%@", granted ? @"YES" : @"NO");
+                                [self handleBoolResultWithPotentialError:error command:command result:granted];
+                            }@catch (NSException *exception) {
+                                [self handlePluginExceptionWithContext:exception :command];
+                            }
+                        }];
+                    }
+                }@catch (NSException *exception) {
+                    [self handlePluginExceptionWithContext:exception :command];
+                }
+            }];
+        } else {
+            [self handleBoolResultWithPotentialError:nil command:command result:false];
+        }
     }@catch (NSException *exception) {
         [self handlePluginExceptionWithContext:exception :command];
     }
@@ -407,15 +485,35 @@ static NSMutableDictionary* firestoreListeners;
 
 - (void)unregister:(CDVInvokedUrlCommand *)command {
     @try {
-        [[FIRInstanceID instanceID] deleteIDWithHandler:^void(NSError *_Nullable error) {
-            [self handleEmptyResultWithPotentialError:error command:command];
+        __block NSError* error = nil;
+        [[FIRMessaging messaging] deleteTokenWithCompletion:^(NSError * _Nullable deleteTokenError) {
+            if(error == nil && deleteTokenError != nil) error = deleteTokenError;
+            if([FIRMessaging messaging].isAutoInitEnabled){
+                [self _getToken:^(NSString* token, NSError* getError) {
+                    if(error == nil && getError != nil) error = getError;
+                    [self handleEmptyResultWithPotentialError:error command:command];
+                }];
+            }else{
+                [self handleEmptyResultWithPotentialError:error command:command];
+            }
         }];
     }@catch (NSException *exception) {
         [self handlePluginExceptionWithContext:exception :command];
     }
 }
 
+- (void) onOpenSettings:(CDVInvokedUrlCommand *)command {
+    @try {
+        self.openSettingsCallbackId = command.callbackId;
 
+        if(openSettingsEmitted == YES) {
+            [self sendPluginSuccessAndKeepCallback:self.openSettingsCallbackId];
+            openSettingsEmitted = NO;
+        }
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
 
 - (void)onMessageReceived:(CDVInvokedUrlCommand *)command {
     @try {
@@ -434,22 +532,11 @@ static NSMutableDictionary* firestoreListeners;
 
 - (void)onTokenRefresh:(CDVInvokedUrlCommand *)command {
     self.tokenRefreshCallbackId = command.callbackId;
-    @try {
-        [[FIRInstanceID instanceID] instanceIDWithHandler:^(FIRInstanceIDResult * _Nullable result,
-                                                            NSError * _Nullable error) {
-            @try {
-                if (result.token != nil && error == nil) {
-                    [self sendToken:result.token];
-                }else{
-                    [self handleStringResultWithPotentialError:error command:command result:result.token];
-                }
-            }@catch (NSException *exception) {
-                [self handlePluginExceptionWithContext:exception :command];
-            }
-        }];
-    }@catch (NSException *exception) {
-        [self handlePluginExceptionWithContext:exception :command];
-    }
+    [self _getToken:^(NSString *token, NSError *error) {
+        if(error == nil && token != nil){
+            [self sendToken:token];
+        }
+    }];
 }
 
 - (void)onApnsTokenReceived:(CDVInvokedUrlCommand *)command {
@@ -464,6 +551,17 @@ static NSMutableDictionary* firestoreListeners;
     }
 }
 
+- (void)sendOpenNotificationSettings {
+    @try {
+        if(self.openSettingsCallbackId != nil) {
+            [self sendPluginSuccessAndKeepCallback:self.openSettingsCallbackId];
+        } else if(openSettingsEmitted != YES) {
+            openSettingsEmitted = YES;
+        }
+    } @catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :self.commandDelegate];
+    }
+}
 
 - (void)sendNotification:(NSDictionary *)userInfo {
     @try {
@@ -698,8 +796,35 @@ static NSMutableDictionary* firestoreListeners;
 
 - (void)authenticateUserWithGoogle:(CDVInvokedUrlCommand*)command{
     @try {
-        self.googleSignInCallbackId = command.callbackId;
-        [[GIDSignIn sharedInstance] signIn];
+        __weak __auto_type weakSelf = self;
+        GIDConfiguration* googleSignInConfig = [[GIDConfiguration alloc] initWithClientID:[FIRApp defaultApp].options.clientID];
+        [GIDSignIn.sharedInstance signInWithConfiguration:googleSignInConfig presentingViewController:self.viewController callback:^(GIDGoogleUser * _Nullable user, NSError * _Nullable error) {
+          __auto_type strongSelf = weakSelf;
+          if (strongSelf == nil) { return; }
+
+            @try{
+                CDVPluginResult* pluginResult;
+                if (error == nil) {
+                    GIDAuthentication *authentication = user.authentication;
+                    FIRAuthCredential *credential =
+                    [FIRGoogleAuthProvider credentialWithIDToken:authentication.idToken
+                                                   accessToken:authentication.accessToken];
+
+                    NSNumber* key = [[FirebasePlugin firebasePlugin] saveAuthCredential:credential];
+                    NSString *idToken = user.authentication.idToken;
+                    NSMutableDictionary* result = [[NSMutableDictionary alloc] init];
+                    [result setValue:@"true" forKey:@"instantVerification"];
+                    [result setValue:key forKey:@"id"];
+                    [result setValue:idToken forKey:@"idToken"];
+                    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:result];
+                } else {
+                  pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.description];
+                }
+                [[FirebasePlugin firebasePlugin].commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+            }@catch (NSException *exception) {
+                [FirebasePlugin.firebasePlugin handlePluginExceptionWithoutContext:exception];
+            }
+        }];
 
         [self sendPluginNoResultAndKeepCallback:command callbackId:command.callbackId];
     }@catch (NSException *exception) {
@@ -728,7 +853,6 @@ static NSMutableDictionary* firestoreListeners;
 
 - (void)authenticateUserWithFacebookToken:(CDVInvokedUrlCommand*)command{
     @try {
-        CDVPluginResult *pluginResult;
         NSString* accessToken = [command.arguments objectAtIndex:0];
         FIRAuthCredential *credential = [FIRFacebookAuthProvider
             credentialWithAccessToken:accessToken];
@@ -834,21 +958,31 @@ static NSMutableDictionary* firestoreListeners;
             return;
         }
 
-        // Sign out of Google
-        if([[GIDSignIn sharedInstance] currentUser] != nil){
-            [[GIDSignIn sharedInstance] signOut];
-        }
+        // If signed in with Google
+        if([GIDSignIn.sharedInstance currentUser] != nil){
+            // Sign out of Google
+            [GIDSignIn.sharedInstance disconnectWithCallback:^(NSError * _Nullable error) {
+                if (error) {
+                    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"Error signing out of Google: %@", error]] callbackId:command.callbackId];
+                }
 
-        // Sign out of Firebase
-        NSError *signOutError;
-        BOOL status = [[FIRAuth auth] signOut:&signOutError];
-        if (!status) {
-          [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:[NSString stringWithFormat:@"Error signing out: %@", signOutError]]] callbackId:command.callbackId];
+                [self signOutOfFirebase:command];
+            }];
         }else{
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+            [self signOutOfFirebase:command];
         }
     }@catch (NSException *exception) {
         [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
+- (void)signOutOfFirebase:(CDVInvokedUrlCommand*)command {
+    NSError *signOutError;
+    BOOL status = [[FIRAuth auth] signOut:&signOutError];
+    if (!status) {
+      [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"Error signing out of Firebase: %@", signOutError]] callbackId:command.callbackId];
+    }else{
+        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
     }
 }
 
@@ -856,7 +990,6 @@ static NSMutableDictionary* firestoreListeners;
 
     @try {
         FIRUser* user = [FIRAuth auth].currentUser;
-
         if(!user){
             [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
             return;
@@ -935,13 +1068,16 @@ static NSMutableDictionary* firestoreListeners;
       [providers addObject:providerInfo];
     }
     [userInfo setValue:providers forKey:@"providerData"];
-    //[userInfo setValue:[user.providerData mutableCopy] forKey:@"providerData"];
+
     [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo] callbackId:command.callbackId];
-// bypass this so it works offline
 //    [user getIDTokenWithCompletion:^(NSString * _Nullable token, NSError * _Nullable error) {
-//        [userInfo setValue:token forKey:@"idToken"];
+//        if(error == nil){
+//            [userInfo setValue:token forKey:@"idToken"];
+//        }
 //        [user getIDTokenResultWithCompletion:^(FIRAuthTokenResult * _Nullable tokenResult, NSError * _Nullable error) {
-//            [userInfo setValue:tokenResult.signInProvider forKey:@"providerId"];
+//            if(error == nil){
+//                [userInfo setValue:tokenResult.signInProvider forKey:@"providerId"];
+//            }
 //            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo] callbackId:command.callbackId];
 //        }];
 //    }];
@@ -1134,6 +1270,40 @@ static NSMutableDictionary* firestoreListeners;
   return result;
 }
 
+- (void)useAuthEmulator:(CDVInvokedUrlCommand *)command {
+    NSString* host = [command.arguments objectAtIndex:0];
+    NSInteger port = [[command.arguments objectAtIndex:1] integerValue];
+    @try {
+        [[FIRAuth auth] useEmulatorWithHost:host port:port];
+        [self sendPluginSuccess:command];
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
+- (void)getClaims:(CDVInvokedUrlCommand *)command {
+    @try {
+        FIRUser* user = [FIRAuth auth].currentUser;
+
+        if(!user){
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"No user is currently signed"] callbackId:command.callbackId];
+            return;
+        }
+
+        [user getIDTokenResultWithCompletion:^(FIRAuthTokenResult * _Nullable tokenResult, NSError * _Nullable error) {
+            if(error != nil){
+                [self sendPluginErrorWithError:error command:command];
+                return;
+            }
+
+            [self sendPluginDictionaryResult:tokenResult.claims command:command callbackId:command.callbackId];
+        }];
+
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
 /*
  * Analytics
  */
@@ -1219,8 +1389,7 @@ static NSMutableDictionary* firestoreListeners;
 - (void)setScreenName:(CDVInvokedUrlCommand *)command {
     @try {
         NSString* name = [command.arguments objectAtIndex:0];
-
-        [FIRAnalytics setScreenName:name screenClass:NULL];
+        [FIRAnalytics logEventWithName:kFIREventScreenView parameters: @{kFIRParameterScreenName: name}];
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }@catch (NSException *exception) {
@@ -1314,12 +1483,13 @@ static NSMutableDictionary* firestoreListeners;
 
 - (void)logError:(CDVInvokedUrlCommand *)command {
     [self.commandDelegate runInBackground:^{
-        NSString* errorMessage = [command.arguments objectAtIndex:0];
-
-        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         @try {
+            NSString* errorMessage = [command.arguments objectAtIndex:0];
+            CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
             if(![self isCrashlyticsEnabled]){
                 pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"Cannot log error - Crashlytics collection is disabled"]];
+            }else if([command.arguments objectAtIndex:0] == [NSNull null]){
+                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Cannot log error - error message is empty"];
             }
             // We can optionally be passed a stack trace from stackTrace.js which we'll put in userInfo.
             else if ([command.arguments count] > 1) {
@@ -1514,7 +1684,16 @@ static NSMutableDictionary* firestoreListeners;
     [self.commandDelegate runInBackground:^{
         @try {
             FIRRemoteConfig* remoteConfig = [FIRRemoteConfig remoteConfig];
-            NSArray* keys = [remoteConfig allKeysFromSource:FIRRemoteConfigSourceDefault];
+            NSArray* defaultKeys = [remoteConfig allKeysFromSource:FIRRemoteConfigSourceDefault];
+            NSArray* remoteKeys = [remoteConfig allKeysFromSource:FIRRemoteConfigSourceRemote];
+            NSArray* staticKeys = [remoteConfig allKeysFromSource:FIRRemoteConfigSourceStatic];
+            NSArray* keys = defaultKeys;
+            if([keys count] == 0){
+                keys = remoteKeys;
+            }
+            if([keys count] == 0){
+                keys = staticKeys;
+            }
             NSMutableDictionary* result = [[NSMutableDictionary alloc] init];
 
             for (NSString* key in keys) {
@@ -1552,11 +1731,8 @@ static NSMutableDictionary* firestoreListeners;
             NSInteger fetchTimeout = remoteConfig.configSettings.fetchTimeout;
             NSDate* lastFetchTime = remoteConfig.lastFetchTime;
             FIRRemoteConfigFetchStatus lastFetchStatus = remoteConfig.lastFetchStatus;
-            // isDeveloperModeEnabled is deprecated new recommnded way to check is minimumFetchInterval == 0
-            BOOL isDeveloperModeEnabled = minimumFetchInterval == 0 ? true : false;
 
             NSDictionary* configSettings = @{
-                @"developerModeEnabled": [NSNumber numberWithBool:isDeveloperModeEnabled],
                 @"minimumFetchInterval": [NSNumber numberWithInteger:minimumFetchInterval],
                 @"fetchTimeout": [NSNumber numberWithInteger:fetchTimeout],
             };
@@ -1579,7 +1755,7 @@ static NSMutableDictionary* firestoreListeners;
     [self.commandDelegate runInBackground:^{
         @try {
             @synchronized (firestoreListeners) {
-                NSInteger result = 0;
+                int result = 0;
                 if ( firestoreListeners != nil) {
                     result = 1;
                 }
@@ -1627,16 +1803,14 @@ static NSMutableDictionary* firestoreListeners;
     [self.commandDelegate runInBackground:^{
         @try {
             NSString* traceName = [command.arguments objectAtIndex:0];
-            FIRTrace *trace = [self.traces objectForKey:traceName];
 
-            if ( self.traces == nil) {
-                self.traces = [NSMutableDictionary new];
-            }
+            @synchronized (traces) {
+                FIRTrace* trace = [traces objectForKey:traceName];
 
-            if (trace == nil) {
-                trace = [FIRPerformance startTraceWithName:traceName];
-                [self.traces setObject:trace forKey:traceName ];
-
+                if (trace == nil) {
+                    trace = [FIRPerformance startTraceWithName:traceName];
+                    [traces setObject:trace forKey:traceName ];
+                }
             }
 
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
@@ -1653,13 +1827,15 @@ static NSMutableDictionary* firestoreListeners;
             NSString* traceName = [command.arguments objectAtIndex:0];
             NSString* counterNamed = [command.arguments objectAtIndex:1];
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-            FIRTrace *trace = (FIRTrace*)[self.traces objectForKey:traceName];
+            @synchronized (traces) {
+                FIRTrace *trace = (FIRTrace*)[traces objectForKey:traceName];
 
-            if (trace != nil) {
-                [trace incrementMetric:counterNamed byInt:1];
-                [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-            } else {
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"Trace not found"]];
+                if (trace != nil) {
+                    [trace incrementMetric:counterNamed byInt:1];
+                    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                } else {
+			pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"Trace not found"]];
+                }
             }
 
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -1674,14 +1850,16 @@ static NSMutableDictionary* firestoreListeners;
         @try {
             NSString* traceName = [command.arguments objectAtIndex:0];
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-            FIRTrace *trace = [self.traces objectForKey:traceName];
+            @synchronized (traces) {
+                FIRTrace *trace = [traces objectForKey:traceName];
 
-            if (trace != nil) {
-                [trace stop];
-                [self.traces removeObjectForKey:traceName];
-                [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-            } else {
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"Trace not found"]];
+                if (trace != nil) {
+                    [trace stop];
+                    [traces removeObjectForKey:traceName];
+                    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                } else {
+                    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"Trace not found"]];
+                }
             }
 
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -1695,13 +1873,78 @@ static NSMutableDictionary* firestoreListeners;
 * Firestore
 */
 
+- (void)replaceDeleteSemaphore:(id)object
+{
+    [self replaceDeleteSemaphore:object depth:0 key:nil parent:nil];
+}
+
+- (void)replaceDeleteSemaphore:(id)object depth:(int)depth key:(NSString *)key parent:(id)parent
+{
+    if ([object isKindOfClass:[NSDictionary class]])
+    {
+        for (NSString * key in [object allKeys])
+        {
+            id child = [object objectForKey:key];
+            [self replaceDeleteSemaphore:child depth:(depth + 1) key:key parent:object];
+        }
+    }
+    else {
+        //if semaphore is found, replace it with actual semaphore
+        if ([[object description] isEqualToString:@"W4KA123"]) {
+            [parent setObject:[FIRFieldValue fieldValueForDelete] forKey:key];
+        }
+    }
+}
+
+- (void)mergeDocumentInFirestoreCollection:(CDVInvokedUrlCommand *)command {
+    [self.commandDelegate runInBackground:^{
+        @try {
+            NSString * documentId = [command.arguments objectAtIndex:0];
+            NSDictionary* document = [command.arguments objectAtIndex:1];
+            NSString * collection = [command.arguments objectAtIndex:2];
+            //NSLog(@"Before Dictionary: %@", [document description]);
+            [self replaceDeleteSemaphore:document];
+            //NSLog(@"After Dictionary: %@", [document description]);
+            [[[firestore collectionWithPath:collection] documentWithPath:documentId] setData:document merge:YES completion:^(NSError * _Nullable error) {
+                [self handleEmptyResultWithPotentialError:error command:command];
+            }];
+        }@catch (NSException *exception) {
+            [self handlePluginExceptionWithContext:exception :command];
+        }
+    }];
+}
+
+- (void)updateDictionaryResult:(NSMutableDictionary *)result {
+    for (NSString * key in [result allKeys]) {
+        id value = [result objectForKey:key];
+        if ([value isKindOfClass:[NSNumber class]] && [value isEqualToNumber:[NSDecimalNumber notANumber]]) {
+            result[key] = @"Double.NaN";
+        } else if ([value isKindOfClass:[NSDictionary class]]) {
+            [self updateDictionaryResult:value];
+        } else if ([value isKindOfClass:[FIRTimestamp class]]) {
+            FIRTimestamp *firts = (FIRTimestamp*) value;
+            double ts = (firts.seconds + firts.nanoseconds/1e9);
+            result[key] = [NSNumber numberWithDouble:ts];
+        }
+    }
+}
+
 - (void)addDocumentToFirestoreCollection:(CDVInvokedUrlCommand*)command {
     [self.commandDelegate runInBackground:^{
         @try {
             NSDictionary* document = [command.arguments objectAtIndex:0];
             NSString* collection = [command.arguments objectAtIndex:1];
+            bool  timestamp = [command.arguments objectAtIndex:2];
+
+            NSMutableDictionary *document_mutable = [document mutableCopy];
+
+            if(timestamp){
+                document_mutable[@"created"] = [FIRTimestamp timestampWithDate:[NSDate date]];
+                document_mutable[@"lastUpdate"] = [FIRTimestamp timestampWithDate:[NSDate date]];
+            }
+
             __block FIRDocumentReference *ref =
-            [[firestore collectionWithPath:collection] addDocumentWithData:document completion:^(NSError * _Nullable error) {
+            [[firestore collectionWithPath:collection] addDocumentWithData:document_mutable completion:^(NSError * _Nullable error) {
                 [self handleStringResultWithPotentialError:error command:command result:ref.documentID];
             }];
         }@catch (NSException *exception) {
@@ -1716,71 +1959,21 @@ static NSMutableDictionary* firestoreListeners;
             NSString* documentId = [command.arguments objectAtIndex:0];
             NSDictionary* document = [command.arguments objectAtIndex:1];
             NSString* collection = [command.arguments objectAtIndex:2];
+            bool  timestamp = [command.arguments objectAtIndex:3];
 
-            [[[firestore collectionWithPath:collection] documentWithPath:documentId] setData:document completion:^(NSError * _Nullable error) {
+            NSMutableDictionary *document_mutable = [document mutableCopy];
+
+            if(timestamp){
+                document_mutable[@"lastUpdate"] = [FIRTimestamp timestampWithDate:[NSDate date]];
+            }
+
+            [[[firestore collectionWithPath:collection] documentWithPath:documentId] setData:document_mutable completion:^(NSError * _Nullable error) {
                 [self handleEmptyResultWithPotentialError:error command:command];
             }];
         }@catch (NSException *exception) {
             [self handlePluginExceptionWithContext:exception :command];
         }
     }];
-}
-
-- (void)replaceDeleteSemaphore:(id)object
-{
-    [self replaceDeleteSemaphore:object depth:0 key:nil parent:nil];
-}
-
-- (void)replaceDeleteSemaphore:(id)object depth:(int)depth key:(NSString*)key parent:(id)parent
-{
-    if ([object isKindOfClass:[NSDictionary class]])
-    {
-        for (NSString* key in [object allKeys])
-        {
-            id child = [object objectForKey:key];
-            [self replaceDeleteSemaphore:child depth:(depth + 1) key:key parent:object];
-        }
-    }
-    else {
-        //if semaphore is found, replace it with actual semaphore
-        if ([[object description] isEqualToString:@"W4KA123"]) {
-            [parent setObject:[FIRFieldValue fieldValueForDelete] forKey:key];
-        }
-    }
-}
-
-- (void)mergeDocumentInFirestoreCollection:(CDVInvokedUrlCommand*)command {
-    [self.commandDelegate runInBackground:^{
-        @try {
-            NSString* documentId = [command.arguments objectAtIndex:0];
-            NSDictionary* document = [command.arguments objectAtIndex:1];
-            NSString* collection = [command.arguments objectAtIndex:2];
-            //NSLog(@"Before Dictionary: %@", [document description]);
-            [self replaceDeleteSemaphore:document];
-            //NSLog(@"After Dictionary: %@", [document description]);
-            [[[firestore collectionWithPath:collection] documentWithPath:documentId] setData:document merge:YES completion:^(NSError * _Nullable error) {
-                [self handleEmptyResultWithPotentialError:error command:command];
-            }];
-        }@catch (NSException *exception) {
-            [self handlePluginExceptionWithContext:exception :command];
-        }
-    }];
-}
-
-- (void)updateDictionaryResult:(NSMutableDictionary*)result
-{
-    for (NSString* key in [result allKeys]) {
-        id value = [result objectForKey:key];
-        if ([value isKindOfClass:[NSNumber class]] && [value isEqualToNumber:[NSDecimalNumber notANumber]]) {
-            result[key] = @"Double.NaN";
-        } else if ([value isKindOfClass:[NSDictionary class]]) {
-            [self updateDictionaryResult:value];
-        } else if ([value isKindOfClass:[FIRTimestamp class]]) {
-            FIRTimestamp* firts = (FIRTimestamp*) value;
-            double ts = (firts.seconds + firts.nanoseconds/1e9);
-            result[key] = [NSNumber numberWithDouble:ts];
-        }
-    }
 }
 
 - (void)updateDocumentInFirestoreCollection:(CDVInvokedUrlCommand*)command {
@@ -1789,11 +1982,17 @@ static NSMutableDictionary* firestoreListeners;
             NSString* documentId = [command.arguments objectAtIndex:0];
             NSDictionary* document = [command.arguments objectAtIndex:1];
             NSString* collection = [command.arguments objectAtIndex:2];
-            [self replaceDeleteSemaphore:document];
+            bool  timestamp = [command.arguments objectAtIndex:3];
+
+            NSMutableDictionary *document_mutable = [document mutableCopy];
+
+            if(timestamp){
+                document_mutable[@"lastUpdate"] = [FIRTimestamp timestampWithDate:[NSDate date]];
+            }
 
             FIRDocumentReference* docRef = [[firestore collectionWithPath:collection] documentWithPath:documentId];
             if(docRef != nil){
-                [docRef updateData:document completion:^(NSError * _Nullable error) {
+                [docRef updateData:document_mutable completion:^(NSError * _Nullable error) {
                     [self handleEmptyResultWithPotentialError:error command:command];
                 }];
             }else{
@@ -1854,7 +2053,7 @@ static NSMutableDictionary* firestoreListeners;
                     if (error != nil) {
                         [self sendPluginErrorWithMessage:error.localizedDescription:command];
                     } else if(snapshot.data != nil) {
-                        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:snapshot.data] callbackId:command.callbackId];
+                        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:[self sanitiseFirestoreDataDictionary:snapshot.data]] callbackId:command.callbackId];
                     }else{
                         [self sendPluginErrorWithMessage:@"Document not found in collection":command];
                     }
@@ -1889,7 +2088,7 @@ static NSMutableDictionary* firestoreListeners;
                             [document setObject:[NSNumber numberWithBool:snapshot.metadata.fromCache] forKey:@"fromCache"];
                             [document setObject:snapshot.metadata.hasPendingWrites ? @"local" : @"remote" forKey:@"source"];
                         }
-                        [self sendPluginDictionaryResultAndKeepCallback:document command:command callbackId:command.callbackId];
+                        [self sendPluginDictionaryResultAndKeepCallback:[self sanitiseFirestoreDataDictionary:document] command:command callbackId:command.callbackId];
                     }else{
                         [self sendPluginErrorWithError:error command:command];
                     }
@@ -1929,7 +2128,7 @@ static NSMutableDictionary* firestoreListeners;
                 } else {
                     NSMutableDictionary* documents = [[NSMutableDictionary alloc] init];;
                     for (FIRDocumentSnapshot *document in snapshot.documents) {
-                        [documents setObject:document.data forKey:document.documentID];
+                        [documents setObject:[self sanitiseFirestoreDataDictionary:document.data] forKey:document.documentID];
                     }
                     [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:documents] callbackId:command.callbackId];
                 }
@@ -1978,7 +2177,7 @@ static NSMutableDictionary* firestoreListeners;
                                     [document setObject:@"metadata" forKey:@"type"];
                                 }
                                 if(dc.document.data != nil){
-                                    [document setObject:dc.document.data forKey:@"snapshot"];
+                                    [document setObject:[self sanitiseFirestoreDataDictionary:dc.document.data] forKey:@"snapshot"];
                                 }
                                 if(dc.document.metadata != nil){
                                     [document setObject:[NSNumber numberWithBool:dc.document.metadata.fromCache] forKey:@"fromCache"];
@@ -2128,13 +2327,12 @@ static NSMutableDictionary* firestoreListeners;
 }
 
 - (NSNumber*) saveFirestoreListener: (id<FIRListenerRegistration>) firestoreListener {
-    NSNumber* key;
     @synchronized (firestoreListeners) {
-        int id = [self generateId]; //generateId looks at firestoreListeners hence locking it too
-        key = [NSNumber numberWithInt:id];
+        int id = [self generateId];
+        NSNumber* key = [NSNumber numberWithInt:id];
         [firestoreListeners setObject:firestoreListener forKey:key];
+        return key;
     }
-    return key;
 }
 
 - (void) removeFirestoreListener:(CDVInvokedUrlCommand*)command {
@@ -2154,16 +2352,141 @@ static NSMutableDictionary* firestoreListeners;
 }
 
 - (bool) _removeFirestoreListener: (NSNumber*) key {
-    bool removed = false;
     @synchronized (firestoreListeners) {
+        bool removed = false;
         if([firestoreListeners objectForKey:key] != nil){
             id<FIRListenerRegistration> firestoreListener = [firestoreListeners objectForKey:key];
             [firestoreListener remove];
             [firestoreListeners removeObjectForKey:key];
             removed = true;
         }
+        return removed;
     }
-    return removed;
+}
+
+- (NSMutableDictionary*) sanitiseFirestoreDataDictionary:(NSDictionary*) data {
+    NSMutableDictionary* sanitisedData = [[NSMutableDictionary alloc] init];
+    for(id key in data){
+        id value = [data objectForKey:key];
+        value = [self sanitizeFirestoreData:(id)value];
+        [sanitisedData setValue:value forKey:key];
+    }
+    return sanitisedData;
+}
+
+- (id)sanitizeFirestoreData:(id) value {
+    if([value isKindOfClass:[FIRDocumentReference class]]){
+        FIRDocumentReference* reference = (FIRDocumentReference*) value;
+        NSString* path = reference.path;
+        return path;
+    }else if([value isKindOfClass:[NSDictionary class]]){
+        return [self sanitiseFirestoreDataDictionary:value];
+    }else if([value isKindOfClass:[NSArray class]]){
+        NSMutableArray* array = [[NSMutableArray alloc] init];;
+        for (id element in value) {
+            id sanitizedValue = (id)[self sanitizeFirestoreData:element];
+            [array addObject:(id)sanitizedValue];
+        }
+        return array;
+    }else if([value isKindOfClass:[FIRTimestamp class]]){
+        FIRTimestamp* dateTimestamp = (FIRTimestamp*) value;
+        NSDictionary *dateDictionary = @{
+            @"nanoseconds" : [NSNumber numberWithInt:dateTimestamp.nanoseconds],
+            @"seconds" : [NSNumber numberWithLong:dateTimestamp.seconds]
+        };
+
+        return dateDictionary;
+    } else if([value isKindOfClass:[NSNumber class]]){
+        double number = [value doubleValue];
+        if (isnan(number) || isinf(number)) {
+            return nil;
+        }
+    }
+    return value;
+}
+
+/*
+ * Functions
+ */
+- (void)functionsHttpsCallable:(CDVInvokedUrlCommand*)command {
+    [self.commandDelegate runInBackground:^{
+        @try {
+            __weak __auto_type weakSelf = self;
+            NSString* name = [command.arguments objectAtIndex:0];
+            NSDictionary* arguments = [command.arguments objectAtIndex:1];
+            [[[FIRFunctions functions] HTTPSCallableWithName:name] callWithObject:arguments
+                                                                  completion:^(FIRHTTPSCallableResult* _Nullable result, NSError* _Nullable error) {
+                if (error != nil) {
+                    [weakSelf sendPluginErrorWithError:error command:command];
+                } else {
+                    [weakSelf sendPluginDictionaryResult:result.data command:command callbackId:command.callbackId];
+                }
+            }];
+        }@catch (NSException *exception) {
+            [self handlePluginExceptionWithContext:exception :command];
+        }
+    }];
+}
+
+/*
+ * Installations
+ */
+- (void) getInstallationId:(CDVInvokedUrlCommand*)command {
+    [self.commandDelegate runInBackground:^{
+        @try {
+            [[FIRInstallations installations] installationIDWithCompletion:^(NSString *identifier, NSError *error) {
+                [self handleStringResultWithPotentialError:error command:command result:identifier];
+            }];
+        }@catch (NSException *exception) {
+            [self handlePluginExceptionWithContext:exception :command];
+        }
+    }];
+}
+
+- (void) getInstallationToken:(CDVInvokedUrlCommand*)command {
+    [self.commandDelegate runInBackground:^{
+        @try {
+            [[FIRInstallations installations] authTokenForcingRefresh:true
+                                                           completion:^(FIRInstallationsAuthTokenResult *result, NSError *error) {
+              if (error != nil) {
+                  [self sendPluginErrorWithError:error command:command];
+              }else{
+                  [self sendPluginStringResult:[result authToken] command:command callbackId:command.callbackId];
+              }
+            }];
+        }@catch (NSException *exception) {
+            [self handlePluginExceptionWithContext:exception :command];
+        }
+    }];
+}
+
+- (void) deleteInstallationId:(CDVInvokedUrlCommand*)command {
+    [self.commandDelegate runInBackground:^{
+        @try {
+            [[FIRInstallations installations] deleteWithCompletion:^(NSError *error) {
+                [self handleEmptyResultWithPotentialError:error command:command];
+            }];
+        }@catch (NSException *exception) {
+            [self handlePluginExceptionWithContext:exception :command];
+        }
+    }];
+}
+
+- (void) sendNewInstallationId {
+    [self.commandDelegate runInBackground:^{
+        @try {
+            [[FIRInstallations installations] installationIDWithCompletion:^(NSString *identifier, NSError *error) {
+                if(error != nil){
+                    [self handlePluginErrorWithoutContext:error];
+                }else if(currentInstallationId != identifier){
+                    [FirebasePlugin.firebasePlugin executeGlobalJavascript:[NSString stringWithFormat:@"FirebasePlugin._onInstallationIdChangeCallback('%@')", identifier]];
+                    currentInstallationId = identifier;
+                }
+            }];
+        }@catch (NSException *exception) {
+            [self handlePluginExceptionWithoutContext:exception];
+        }
+    }];
 }
 
 - (void)clearFirestorePersistence:(CDVInvokedUrlCommand *)command {
@@ -2277,16 +2600,31 @@ static NSMutableDictionary* firestoreListeners;
     }];
 }
 
-/********************************/
+/*************************************************/
 #pragma mark - utility functions
 /********************************/
 - (void) sendPluginSuccess:(CDVInvokedUrlCommand*)command{
     [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
 }
 
+- (void) sendPluginSuccessAndKeepCallback:(NSString*)callbackId{
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [pluginResult setKeepCallbackAsBool:YES];
+}
+
+- (void) sendPluginNoResult:(CDVInvokedUrlCommand*)command callbackId:(NSString*)callbackId {
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_NO_RESULT];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
+}
+
 - (void) sendPluginNoResultAndKeepCallback:(CDVInvokedUrlCommand*)command callbackId:(NSString*)callbackId {
     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_NO_RESULT];
     [pluginResult setKeepCallbackAsBool:YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
+}
+
+- (void) sendPluginStringResult:(NSString*)result command:(CDVInvokedUrlCommand*)command callbackId:(NSString*)callbackId {
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:result];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
 }
 
@@ -2296,8 +2634,23 @@ static NSMutableDictionary* firestoreListeners;
     [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
 }
 
+- (void) sendPluginBoolResult:(BOOL)result command:(CDVInvokedUrlCommand*)command callbackId:(NSString*)callbackId {
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:result];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
+}
+
+- (void) sendPluginBoolResultAndKeepCallback:(BOOL)result command:(CDVInvokedUrlCommand*)command callbackId:(NSString*)callbackId {
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:result];
+    [pluginResult setKeepCallbackAsBool:YES];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
+}
+
+- (void) sendPluginDictionaryResult:(NSDictionary*)result command:(CDVInvokedUrlCommand*)command callbackId:(NSString*)callbackId {
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:result];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
+}
+
 - (void) sendPluginDictionaryResultAndKeepCallback:(NSDictionary*)result command:(CDVInvokedUrlCommand*)command callbackId:(NSString*)callbackId {
-    [self updateDictionaryResult:result];
     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:result];
     [pluginResult setKeepCallbackAsBool:YES];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
@@ -2314,20 +2667,11 @@ static NSMutableDictionary* firestoreListeners;
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (NSDictionary*) getErrorDictionary:(NSError*)error {
-    NSString *val = nil;
-    NSArray *values = [error.userInfo allValues];
-
-    if ([values count] > 1 && error.userInfo != nil)
-        val = [values objectAtIndex:1];
-
-    //fallback in case that something went wrong with firebaes response
-    if(val == nil){
-        val = error.localizedDescription;
-    };
-
-        NSDictionary *errorDictionary = [[NSDictionary alloc] initWithObjectsAndKeys:val, @"code", error.localizedDescription, @"message", error.localizedDescription, @"description", nil];
-    return errorDictionary;
+- (NSDictionary*)getErrorDictionary:(NSError*)error {
+    NSString *code = error.userInfo[FIRAuthErrorUserInfoNameKey];
+    return @{@"code": code ? : error.localizedDescription,
+             @"message": error.localizedDescription,
+             @"description": error.localizedDescription};
 }
 
 - (NSDictionary*) getErrorDictionaryForString:(NSString*)error {
@@ -2358,7 +2702,7 @@ static NSMutableDictionary* firestoreListeners;
      if (error) {
          [self sendPluginErrorWithError:error command:command];
      }else{
-         [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:result] callbackId:command.callbackId];
+         [self sendPluginStringResult:result command:command callbackId:command.callbackId];
      }
 }
 
@@ -2366,7 +2710,7 @@ static NSMutableDictionary* firestoreListeners;
      if (error) {
          [self sendPluginErrorWithError:error command:command];
      }else{
-         [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:result] callbackId:command.callbackId];
+         [self sendPluginBoolResult:result command:command callbackId:command.callbackId];
      }
 }
 
@@ -2380,6 +2724,11 @@ static NSMutableDictionary* firestoreListeners;
 - (void) handlePluginExceptionWithoutContext: (NSException*) exception
 {
     [self _logError:[NSString stringWithFormat:@"EXCEPTION: %@", exception.reason]];
+}
+
+- (void) handlePluginErrorWithoutContext: (NSError*) error
+{
+    [self _logError:[NSString stringWithFormat:@"ERROR: %@", error.description]];
 }
 
 - (void)executeGlobalJavascript: (NSString*)jsString
@@ -2448,9 +2797,7 @@ static NSMutableDictionary* firestoreListeners;
     NSString* code = [credential objectForKey:@"code"];
 
     if(key != nil){
-        @synchronized (authCredentials) {
-            authCredential = [authCredentials objectForKey:key];
-        }
+        authCredential = [authCredentials objectForKey:key];
         if(authCredential == nil){
             NSString* errMsg = [NSString stringWithFormat:@"no native auth credential exists for specified id '%@'", key];
             [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:errMsg]] callbackId:command.callbackId];
@@ -2485,12 +2832,9 @@ static NSMutableDictionary* firestoreListeners;
 }
 
 - (NSNumber*) saveAuthCredential: (FIRAuthCredential*) authCredential {
-    NSNumber* key;
-    @synchronized (authCredentials) {
-        int id = [self generateId];
-        key = [NSNumber numberWithInt:id];
-        [authCredentials setObject:authCredential forKey:key];
-    }
+    int id = [self generateId];
+    NSNumber* key = [NSNumber numberWithInt:id];
+    [authCredentials setObject:authCredential forKey:key];
     return key;
 }
 
