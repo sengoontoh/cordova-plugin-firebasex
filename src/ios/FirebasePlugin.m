@@ -1903,7 +1903,7 @@ static NSMutableDictionary* traces;
             NSDictionary* document = [command.arguments objectAtIndex:1];
             NSString * collection = [command.arguments objectAtIndex:2];
             //NSLog(@"Before Dictionary: %@", [document description]);
-            [self replaceDeleteSemaphore:document];
+            [self replaceDeleteSemaphore:document]; //This is really important for our Huckleberry firebase plugin. Do not remove.
             //NSLog(@"After Dictionary: %@", [document description]);
             [[[firestore collectionWithPath:collection] documentWithPath:documentId] setData:document merge:YES completion:^(NSError * _Nullable error) {
                 [self handleEmptyResultWithPotentialError:error command:command];
@@ -1934,7 +1934,7 @@ static NSMutableDictionary* traces;
         @try {
             NSDictionary* document = [command.arguments objectAtIndex:0];
             NSString* collection = [command.arguments objectAtIndex:1];
-            bool  timestamp = [command.arguments objectAtIndex:2];
+            bool  timestamp = [[command.arguments objectAtIndex:2] isEqual: @YES];
 
             NSMutableDictionary *document_mutable = [document mutableCopy];
 
@@ -1959,7 +1959,7 @@ static NSMutableDictionary* traces;
             NSString* documentId = [command.arguments objectAtIndex:0];
             NSDictionary* document = [command.arguments objectAtIndex:1];
             NSString* collection = [command.arguments objectAtIndex:2];
-            bool  timestamp = [command.arguments objectAtIndex:3];
+            bool  timestamp = [[command.arguments objectAtIndex:3]  isEqual: @YES];
 
             NSMutableDictionary *document_mutable = [document mutableCopy];
 
@@ -1982,8 +1982,8 @@ static NSMutableDictionary* traces;
             NSString* documentId = [command.arguments objectAtIndex:0];
             NSDictionary* document = [command.arguments objectAtIndex:1];
             NSString* collection = [command.arguments objectAtIndex:2];
-            bool  timestamp = [command.arguments objectAtIndex:3];
-
+            bool  timestamp = [[command.arguments objectAtIndex:3] isEqual: @YES];
+            [self replaceDeleteSemaphore:document]; //This is really important for our Huckleberry firebase plugin. Do not remove.
             NSMutableDictionary *document_mutable = [document mutableCopy];
 
             if(timestamp){
