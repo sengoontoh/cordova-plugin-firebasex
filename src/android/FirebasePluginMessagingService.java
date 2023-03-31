@@ -20,7 +20,7 @@ import android.graphics.Color;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
-import com.appboy.AppboyFirebaseMessagingService;
+import com.braze.push.BrazeFirebaseMessagingService;
 import java.util.Map;
 import java.util.Random;
 
@@ -60,7 +60,7 @@ public class FirebasePluginMessagingService extends FirebaseMessagingService {
      */
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
-        if (AppboyFirebaseMessagingService.handleBrazeRemoteMessage(this, remoteMessage)) {
+        if (BrazeFirebaseMessagingService.handleBrazeRemoteMessage(this, remoteMessage)) {
 
         } else {
             try{
