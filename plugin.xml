@@ -16,6 +16,7 @@
 	<preference name="FIREBASE_PERFORMANCE_COLLECTION_ENABLED" default="false" />
 	<preference name="FIREBASE_CRASHLYTICS_COLLECTION_ENABLED" default="true" />
 
+
 	<platform name="android">
 		<preference name="ANDROID_ICON_ACCENT" default="#FF00FFFF" />
 		<preference name="ANDROID_FIREBASE_PERFORMANCE_MONITORING" default="false" />
@@ -33,6 +34,8 @@
 			<uses-permission android:name="android.permission.INTERNET" />
 			<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 			<uses-permission android:name="android.permission.WAKE_LOCK" />
+			<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+			<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 		</config-file>
 		<config-file target="AndroidManifest.xml" parent="application">
 			<service android:enabled="true" android:exported="false" android:name="com.google.android.gms.measurement.AppMeasurementService" />
@@ -131,7 +134,7 @@
       </array>
     </config-file>
 		<resource-file src="src/ios/GoogleService-Info.plist" />
-        
+
 		<header-file src="src/ios/AppDelegate+FirebasePlugin.h" />
 		<source-file src="src/ios/AppDelegate+FirebasePlugin.m" />
 		<header-file src="src/ios/FirebasePlugin.h" />
