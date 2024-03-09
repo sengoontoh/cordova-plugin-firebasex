@@ -162,6 +162,7 @@
                 <pod name="Firebase/Storage" spec="10.20.0" />
                 <pod name="Firebase/Functions" spec="10.20.0" />
                 <pod name="GoogleSignIn" spec="6.2.4" />
+				<pod name="AppAuth" spec="1.6.2" />
 			</pods>
 		</podspec>
 
