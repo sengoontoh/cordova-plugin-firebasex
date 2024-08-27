@@ -86,6 +86,14 @@ exports.grantPermission = function (success, error) {
     exec(ensureBooleanFn(success), error, "FirebasePlugin", "grantPermission", []);
 };
 
+exports.grantProvisionalNotificationPermission = function (success, error) {
+    exec(ensureBooleanFn(success), error, "FirebasePlugin", "grantProvisionalNotificationPermission", []);
+};
+
+exports.hasProvisionalPermission = function (success, error) {
+    exec(ensureBooleanFn(success), error, "FirebasePlugin", "hasProvisionalPermission", []);
+};
+
 exports.hasPermission = function (success, error) {
     exec(ensureBooleanFn(success), error, "FirebasePlugin", "hasPermission", []);
 };

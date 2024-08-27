@@ -451,6 +451,8 @@ public class FirebasePlugin extends CordovaPlugin {
             } else if (action.equals("grantCriticalPermission")
                     || action.equals("setBadgeNumber")
                     || action.equals("getBadgeNumber")
+                    || action.equals("hasProvisionalPermission")
+                    || action.equals("grantProvisionalNotificationPermission")
             ) {
                 // Stubs for other platform methods
                 callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, true));

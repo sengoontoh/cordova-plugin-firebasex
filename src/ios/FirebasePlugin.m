@@ -293,6 +293,81 @@ static NSMutableDictionary* traces;
     }
 }
 
+- (void)hasProvisionalPermission:(CDVInvokedUrlCommand *)command {
+    @try {
+        [[UNUserNotificationCenter currentNotificationCenter] getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings * _Nonnull settings) {
+            @try {
+                BOOL provisionalEnabled = NO;
+
+                // Check if provisional notifications are enabled
+                if (@available(iOS 12.0, *)) {
+                    if (settings.authorizationStatus == UNAuthorizationStatusProvisional) {
+                        provisionalEnabled = YES;
+                    }
+                }
+
+                NSLog(@"hasProvisionalPermission: %d", provisionalEnabled);
+
+                // Send the result back to Cordova
+                CDVPluginResult *commandResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsBool:provisionalEnabled];
+                [self.commandDelegate sendPluginResult:commandResult callbackId:command.callbackId];
+
+            } @catch (NSException *exception) {
+                [self handlePluginExceptionWithContext:exception :command];
+            }
+        }];
+    } @catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
+- (void)grantProvisionalNotificationPermission:(CDVInvokedUrlCommand *)command {
+    NSLog(@"grantProvisionalNotificationPermission");
+    @try {
+        [self _hasPermission:^(BOOL enabled) {
+            @try {
+                if(enabled){
+                    NSString* message = @"Provisional permission is already granted or regular permission is already granted. Call hasPermission() to check before calling grantProvisionalNotificationPermission()";
+                    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:message]];
+                    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                } else {
+                    [UNUserNotificationCenter currentNotificationCenter].delegate = (id<UNUserNotificationCenterDelegate> _Nullable) self;
+                    UNAuthorizationOptions authOptions = 0;
+
+                    if (@available(iOS 12.0, *)) {
+                        authOptions = UNAuthorizationOptionProvisional;
+                    } else {
+                        NSString* message = @"Provisional authorization is not supported on this iOS version.";
+                        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:message]];
+                        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                        return;
+                    }
+
+                    [[UNUserNotificationCenter currentNotificationCenter]
+                     requestAuthorizationWithOptions:authOptions
+                     completionHandler:^(BOOL granted, NSError * _Nullable error) {
+                        @try {
+                            NSLog(@"requestAuthorizationWithOptions (Provisional): granted=%@", granted ? @"YES" : @"NO");
+                            if (error == nil && granted) {
+                                [self registerForRemoteNotifications];
+                            }
+                            [self handleBoolResultWithPotentialError:error command:command result:granted];
+
+                        }@catch (NSException *exception) {
+                            [self handlePluginExceptionWithContext:exception :command];
+                        }
+                    }];
+                }
+            }@catch (NSException *exception) {
+                [self handlePluginExceptionWithContext:exception :command];
+            }
+        }];
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
+
 - (void)grantPermission:(CDVInvokedUrlCommand *)command {
     NSLog(@"grantPermission");
     @try {

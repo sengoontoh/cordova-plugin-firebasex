@@ -55,6 +55,8 @@
 - (void)getAPNSToken:(CDVInvokedUrlCommand*)command;
 - (NSString *)hexadecimalStringFromData:(NSData *)data;
 - (void)grantPermission:(CDVInvokedUrlCommand*)command;
+- (void)grantProvisionalNotificationPermission:(CDVInvokedUrlCommand*)command;
+- (void)hasProvisionalPermission:(CDVInvokedUrlCommand*)command;
 - (void)hasPermission:(CDVInvokedUrlCommand*)command;
 - (void)grantCriticalPermission:(CDVInvokedUrlCommand*)command;
 - (void)hasCriticalPermission:(CDVInvokedUrlCommand*)command;
