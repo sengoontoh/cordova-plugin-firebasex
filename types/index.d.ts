@@ -203,6 +203,14 @@ export interface FirebasePlugin {
         success?: () => void,
         error?: (err: ErrorResponse) => void
     ): void
+    getUserFromSharedKeychain(
+        success: (user: object) => void,
+        error?: (err: ErrorResponse) => void
+    ): void
+    signInWithSharedKeychainUser(
+        success: () => void,
+        error?: (err: ErrorResponse) => void
+    ): void
     getCurrentUser(
         success: (user: object) => void,
         error?: (err: ErrorResponse) => void

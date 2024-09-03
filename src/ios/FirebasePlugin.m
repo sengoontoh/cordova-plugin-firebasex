@@ -923,6 +923,64 @@ static NSMutableDictionary* traces;
     }
 }
 
+- (void)getUserFromSharedKeychain:(CDVInvokedUrlCommand *)command {
+    @try {
+        NSError *error = nil;
+
+        NSString *sharedKeychainAccessGroup = @"APU8L33GKN.com.huckleberry-labs.app";
+        FIRUser *keychainUser = [[FIRAuth auth] getStoredUserForAccessGroup:sharedKeychainAccessGroup error:nil];
+
+        if (error) {
+            NSLog(@"Error retrieving user for access group %@: %@", sharedKeychainAccessGroup, error.localizedDescription);
+            [self sendPluginErrorWithError:error command:command];
+            return;
+        }
+
+        if (!keychainUser) {
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+            return;
+        }
+
+        [self extractAndReturnUserInfo:command withUser:keychainUser];
+    }@catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
+- (void)signInWithSharedKeychainUser:(CDVInvokedUrlCommand *)command {
+    @try {
+        NSError *error = nil;
+
+        NSString *sharedKeychainAccessGroup = @"APU8L33GKN.com.huckleberry-labs.app";
+        FIRUser *keychainUser = [[FIRAuth auth] getStoredUserForAccessGroup:sharedKeychainAccessGroup error:nil];
+
+        if (error || !keychainUser) {
+            NSLog(@"Error signing in user for access group %@: %@", sharedKeychainAccessGroup, error.localizedDescription);
+            [self sendPluginErrorWithError:error command:command];
+            return;
+        }
+
+        // set access group to shared
+        [FIRAuth.auth useUserAccessGroup:sharedKeychainAccessGroup error:nil];
+
+        // update current user to sign in
+        [[FIRAuth auth] updateCurrentUser:keychainUser completion:nil];
+
+        // set access group to default
+        AppDelegate *AppDelegateInstance = [[AppDelegate alloc] init];
+        NSString *defaultKeyChainAccessGroup = [AppDelegateInstance keychainAccessGroup];
+        [FIRAuth.auth useUserAccessGroup:defaultKeyChainAccessGroup error:nil];
+
+        // update default group with current user
+        [[FIRAuth auth] updateCurrentUser:keychainUser completion:nil];
+
+        [self sendPluginSuccess:command];
+
+    } @catch (NSException *exception) {
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
 - (void)linkUserWithCredential:(CDVInvokedUrlCommand*)command {
     @try {
         FIRAuthCredential* credential = [self obtainAuthCredential:[command.arguments objectAtIndex:0] command:command];
@@ -994,7 +1052,7 @@ static NSMutableDictionary* traces;
             [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
             return;
         }
-        [self extractAndReturnUserInfo:command];
+        [self extractAndReturnUserInfo:command withUser:user];
 
     }@catch (NSException *exception) {
         [self handlePluginExceptionWithContext:exception :command];
@@ -1013,7 +1071,7 @@ static NSMutableDictionary* traces;
             if (error != nil) {
                 [self handleEmptyResultWithPotentialError:error command:command];
             }else {
-                [self extractAndReturnUserInfo:command];
+                [self extractAndReturnUserInfo:command withUser:user];
             }
         }];
     }@catch (NSException *exception) {
@@ -1048,8 +1106,7 @@ static NSMutableDictionary* traces;
    }];
 }
 
-- (void) extractAndReturnUserInfo:(CDVInvokedUrlCommand *)command {
-    FIRUser* user = [FIRAuth auth].currentUser;
+- (void) extractAndReturnUserInfo:(CDVInvokedUrlCommand *)command withUser:(FIRUser *)user {
     NSMutableDictionary* userInfo = [NSMutableDictionary new];
     [userInfo setValue:user.displayName forKey:@"name"];
     [userInfo setValue:user.email forKey:@"email"];
