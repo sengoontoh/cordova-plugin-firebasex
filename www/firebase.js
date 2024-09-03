@@ -328,6 +328,15 @@ exports.signOutUser = function (success, error) {
     exec(ensureBooleanFn(success), error, "FirebasePlugin", "signOutUser", []);
 };
 
+exports.getUserFromSharedKeychain = function (success, error) {
+  exec(function (user) {
+    success(user);
+  }, error, "FirebasePlugin", "getUserFromSharedKeychain", []);
+};
+
+exports.signInWithSharedKeychainUser = function (success, error) {
+  exec(success, error, "FirebasePlugin", "signInWithSharedKeychainUser");
+};
 
 exports.getCurrentUser = function (success, error) {
     exec(function(user){

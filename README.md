@@ -126,6 +126,8 @@ To help ensure this plugin is kept updated, new features are added and bugfixes 
   - [Authentication](#authentication)
     - [isUserSignedIn](#isusersignedin)
     - [signOutUser](#signoutuser)
+    - [getUserFromSharedKeychain](#getuserfromsharedkeychain)
+    - [signInWithSharedKeychainUser](#signinwithsharedkeychainuser)
     - [getCurrentUser](#getcurrentuser)
     - [reloadCurrentUser](#reloadcurrentuser)
     - [updateUserProfile](#updateuserprofile)
@@ -2267,6 +2269,12 @@ Signs current Firebase user out of the app.
         console.error("Failed to sign out user: " + error);
     });
 ```
+
+### getUserFromSharedKeychain
+Checks whether there is a user in the shared keychain access group. If yes, returns the user details, otherwise returns undefined.
+
+### signInWithSharedKeychainUser
+Signs in with the user in the shared keychain access group.
 
 ### getCurrentUser
 Returns details of the currently logged in user from local Firebase SDK.

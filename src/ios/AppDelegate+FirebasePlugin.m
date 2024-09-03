@@ -527,7 +527,6 @@ static bool authStateChangeListenerInitialized = false;
     return self.viewController.view.window;
 }
 
-
 - (NSString *)keychainAccessGroup {
     NSString *tempAccountName = @"APU8L33GKN";
     NSDictionary *query = @{
