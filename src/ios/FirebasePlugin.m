@@ -2528,7 +2528,7 @@ static NSMutableDictionary* traces;
                 [self sendPluginErrorWithError:error command:command];
               } else {
                 // Get the download URL for 'images/stars.jpg'
-                // removed port :443 from the URL
+                // remove port :443 from the URL
                 NSString *url = [[URL absoluteString] stringByReplacingOccurrencesOfString:@":443" withString:@""];
                 [self handleStringResultWithPotentialError:error command:command result: url];
               }
