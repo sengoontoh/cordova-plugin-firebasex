@@ -35,6 +35,7 @@
 - (void)reauthenticateWithCredential:(CDVInvokedUrlCommand*)command;
 - (void)isUserSignedIn:(CDVInvokedUrlCommand*)command;
 - (void)signOutUser:(CDVInvokedUrlCommand*)command;
+- (void)clearKeychainData:(CDVInvokedUrlCommand*)command;
 - (void)getUserFromSharedKeychain:(CDVInvokedUrlCommand*)command;
 - (void)signInWithSharedKeychainUser:(CDVInvokedUrlCommand*)command;
 - (void)getCurrentUser:(CDVInvokedUrlCommand*)command;

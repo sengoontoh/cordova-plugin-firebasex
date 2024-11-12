@@ -128,6 +128,7 @@ To help ensure this plugin is kept updated, new features are added and bugfixes 
     - [signOutUser](#signoutuser)
     - [getUserFromSharedKeychain](#getuserfromsharedkeychain)
     - [signInWithSharedKeychainUser](#signinwithsharedkeychainuser)
+    - [clearKeychainData](#clearkeychaindata)
     - [getCurrentUser](#getcurrentuser)
     - [reloadCurrentUser](#reloadcurrentuser)
     - [updateUserProfile](#updateuserprofile)
@@ -2275,6 +2276,9 @@ Checks whether there is a user in the shared keychain access group. If yes, retu
 
 ### signInWithSharedKeychainUser
 Signs in with the user in the shared keychain access group.
+
+### clearKeychainData
+Clears the keychain data for the current user.
 
 ### getCurrentUser
 Returns details of the currently logged in user from local Firebase SDK.
