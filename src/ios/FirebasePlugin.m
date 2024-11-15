@@ -2585,7 +2585,9 @@ static NSMutableDictionary* traces;
                 [self sendPluginErrorWithError:error command:command];
               } else {
                 // Get the download URL for 'images/stars.jpg'
-                [self handleStringResultWithPotentialError:error command:command result:URL.absoluteString];
+                // remove port :443 from the URL
+                NSString *url = [[URL absoluteString] stringByReplacingOccurrencesOfString:@":443" withString:@""];
+                [self handleStringResultWithPotentialError:error command:command result: url];
               }
             }];
         }@catch (NSException *exception) {
