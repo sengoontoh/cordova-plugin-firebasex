@@ -923,6 +923,34 @@ static NSMutableDictionary* traces;
     }
 }
 
+- (void)clearKeychainData:(CDVInvokedUrlCommand*)command {
+    @try {
+        NSLog(@"[clearKeychainData] Starting keychain clean process...");
+
+        NSString *sharedKeychainAccessGroup = @"APU8L33GKN.com.huckleberry-labs.app";
+        NSLog(@"[clearKeychainData] Using shared keychain group: %@", sharedKeychainAccessGroup);
+        
+        [FIRAuth.auth useUserAccessGroup:sharedKeychainAccessGroup error:nil];
+        
+        FIRUser *sharedUser = [[FIRAuth auth] currentUser];
+        if (sharedUser) {
+            NSLog(@"[clearKeychainData] Found user in shared keychain, clearing...");
+            [[FIRAuth auth] signOut:nil];
+        } else {
+            NSLog(@"[clearKeychainData] No user found in shared keychain");
+        }
+
+        AppDelegate *AppDelegateInstance = [[AppDelegate alloc] init];
+        NSString *defaultKeyChainAccessGroup = [AppDelegateInstance keychainAccessGroup];
+        [FIRAuth.auth useUserAccessGroup:defaultKeyChainAccessGroup error:nil];
+      
+        [self sendPluginSuccess:command];
+    }@catch (NSException *exception) {
+        NSLog(@"[clearKeychainData] Exception occurred: %@", exception);
+        [self handlePluginExceptionWithContext:exception :command];
+    }
+}
+
 - (void)getUserFromSharedKeychain:(CDVInvokedUrlCommand *)command {
     @try {
         NSError *error = nil;

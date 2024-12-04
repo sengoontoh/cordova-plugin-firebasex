@@ -334,6 +334,10 @@ exports.getUserFromSharedKeychain = function (success, error) {
   }, error, "FirebasePlugin", "getUserFromSharedKeychain", []);
 };
 
+exports.clearKeychainData = function (success, error) {
+    exec(success, error, "FirebasePlugin", "clearKeychainData", []);
+};
+
 exports.signInWithSharedKeychainUser = function (success, error) {
   exec(success, error, "FirebasePlugin", "signInWithSharedKeychainUser");
 };
