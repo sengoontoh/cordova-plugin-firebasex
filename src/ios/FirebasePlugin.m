@@ -1107,30 +1107,33 @@ static NSMutableDictionary* traces;
     }
 }
 
-- (void) getIdTokenWithoutRefresh:(CDVInvokedUrlCommand*)command {
-
-    FIRUser* user = [FIRAuth auth].currentUser;
-    NSMutableDictionary* userInfo = [NSMutableDictionary new];
-    [user getIDTokenWithCompletion:^(NSString * _Nullable token, NSError * _Nullable error) {
-        [userInfo setValue:token forKey:@"idToken"];
-        [user getIDTokenResultWithCompletion:^(FIRAuthTokenResult * _Nullable tokenResult, NSError * _Nullable error) {
-            [userInfo setValue:tokenResult.signInProvider forKey:@"providerId"];
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo] callbackId:command.callbackId];
-        }];
-    }];
+- (void) getIdTokenForcingRefresh:(CDVInvokedUrlCommand*)command {
+    [self getIdToken:command forcingRefresh:true];
 }
 
-
 - (void) getIdToken:(CDVInvokedUrlCommand*)command {
+    [self getIdToken:command forcingRefresh:false];
+}
+
+- (void) getIdToken:(CDVInvokedUrlCommand*)command forcingRefresh:(BOOL)forcingRefresh {
     FIRUser* user = [FIRAuth auth].currentUser;
     NSMutableDictionary* userInfo = [NSMutableDictionary new];
-    [user getIDTokenWithCompletion:^(NSString * _Nullable token, NSError * _Nullable error) {
-        [userInfo setValue:token forKey:@"idToken"];
-        [user getIDTokenResultForcingRefresh:true
-                                  completion:^(FIRAuthTokenResult * _Nullable tokenResult, NSError * _Nullable error) {
-           [userInfo setValue:tokenResult.signInProvider forKey:@"providerId"];
-           [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo] callbackId:command.callbackId];
-       }];
+    [user getIDTokenResultForcingRefresh:forcingRefresh
+                              completion:^(FIRAuthTokenResult * _Nullable tokenResult, NSError * _Nullable error) {
+        if (error != nil) {
+            CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error localizedDescription]];
+            [self.commandDelegate sendPluginResult:result
+                                        callbackId:command.callbackId];
+        } else if (tokenResult != nil) {
+            [userInfo setValue:tokenResult.token forKey:@"idToken"];
+            [userInfo setValue:tokenResult.signInProvider forKey:@"providerId"];
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo]
+                                        callbackId:command.callbackId];
+        } else {
+            CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Can't get idToken"];
+            [self.commandDelegate sendPluginResult:result
+                                        callbackId:command.callbackId];
+        }
    }];
 }
 
@@ -1155,17 +1158,6 @@ static NSMutableDictionary* traces;
     [userInfo setValue:providers forKey:@"providerData"];
 
     [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo] callbackId:command.callbackId];
-//    [user getIDTokenWithCompletion:^(NSString * _Nullable token, NSError * _Nullable error) {
-//        if(error == nil){
-//            [userInfo setValue:token forKey:@"idToken"];
-//        }
-//        [user getIDTokenResultWithCompletion:^(FIRAuthTokenResult * _Nullable tokenResult, NSError * _Nullable error) {
-//            if(error == nil){
-//                [userInfo setValue:tokenResult.signInProvider forKey:@"providerId"];
-//            }
-//            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:userInfo] callbackId:command.callbackId];
-//        }];
-//    }];
 }
 
 - (void)updateUserProfile:(CDVInvokedUrlCommand*)command {
