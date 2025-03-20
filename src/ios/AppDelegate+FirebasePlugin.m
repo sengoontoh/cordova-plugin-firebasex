@@ -84,6 +84,8 @@ static bool authStateChangeListenerInitialized = false;
         // Setup Firestore
         [FirebasePlugin setFirestore:[FIRFirestore firestore]];
 
+        [FIRFirestore enableLogging:YES];
+
         // Setup Storage
         [FirebasePlugin setStorage:[FIRStorage storage]];
 
