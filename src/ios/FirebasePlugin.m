@@ -34,6 +34,7 @@ static NSDictionary* googlePlist;
 static NSMutableDictionary* firestoreListeners;
 static NSString* currentInstallationId;
 static NSMutableDictionary* traces;
+static FIRMultiFactorResolver* multiFactorResolver;
 
 + (FirebasePlugin*) firebasePlugin {
     return firebasePlugin;
@@ -668,6 +669,26 @@ static NSMutableDictionary* traces;
     }
 }
 
+- (NSMutableArray*) parseEnrolledSecondFactorsToJson:(NSArray*) multiFactorInfos{
+    NSMutableArray* secondFactors  = [NSMutableArray new];
+    int index = 0;
+    for (FIRMultiFactorInfo* multiFactorInfo in multiFactorInfos) {
+        NSMutableDictionary* secondFactor = [[NSMutableDictionary alloc] init];
+        [secondFactor setValue:[NSNumber numberWithInt:index] forKey:@"index"];
+        if(multiFactorInfo.displayName != nil){
+            [secondFactor setValue:multiFactorInfo.displayName forKey:@"displayName"];
+        }
+
+        FIRPhoneMultiFactorInfo* phoneMultiFactorInfo = (FIRPhoneMultiFactorInfo*) multiFactorInfo;
+        if([phoneMultiFactorInfo respondsToSelector:@selector(phoneNumber)]){
+            [secondFactor setValue:phoneMultiFactorInfo.phoneNumber forKey:@"phoneNumber"];
+        }
+        [secondFactors addObject:secondFactor];
+        index++;
+    }
+    return secondFactors;
+}
+
 - (void)unlinkUser:(CDVInvokedUrlCommand*)command {
     @try {
         NSString* providerID = [command.arguments objectAtIndex:0];
@@ -798,32 +819,33 @@ static NSMutableDictionary* traces;
     @try {
         __weak __auto_type weakSelf = self;
         GIDConfiguration* googleSignInConfig = [[GIDConfiguration alloc] initWithClientID:[FIRApp defaultApp].options.clientID];
-        [GIDSignIn.sharedInstance signInWithConfiguration:googleSignInConfig presentingViewController:self.viewController callback:^(GIDGoogleUser * _Nullable user, NSError * _Nullable error) {
-          __auto_type strongSelf = weakSelf;
-          if (strongSelf == nil) { return; }
+        GIDSignIn.sharedInstance.configuration = googleSignInConfig;
+        [GIDSignIn.sharedInstance signInWithPresentingViewController:self.viewController completion:^(GIDSignInResult * _Nullable signInResult, NSError * _Nullable error) {
+            __auto_type strongSelf = weakSelf;
+            if (strongSelf == nil) { return; }
 
-            @try{
-                CDVPluginResult* pluginResult;
-                if (error == nil) {
-                    GIDAuthentication *authentication = user.authentication;
-                    FIRAuthCredential *credential =
-                    [FIRGoogleAuthProvider credentialWithIDToken:authentication.idToken
-                                                   accessToken:authentication.accessToken];
+              @try{
+                  CDVPluginResult* pluginResult;
+                  if (error == nil) {
+                      GIDGoogleUser* gidUser = signInResult.user;
+                      FIRAuthCredential *credential =
+                      [FIRGoogleAuthProvider credentialWithIDToken:gidUser.idToken.tokenString
+                                                       accessToken:gidUser.accessToken.tokenString];
 
-                    NSNumber* key = [[FirebasePlugin firebasePlugin] saveAuthCredential:credential];
-                    NSString *idToken = user.authentication.idToken;
-                    NSMutableDictionary* result = [[NSMutableDictionary alloc] init];
-                    [result setValue:@"true" forKey:@"instantVerification"];
-                    [result setValue:key forKey:@"id"];
-                    [result setValue:idToken forKey:@"idToken"];
-                    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:result];
-                } else {
-                  pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.description];
-                }
-                [[FirebasePlugin firebasePlugin].commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-            }@catch (NSException *exception) {
-                [FirebasePlugin.firebasePlugin handlePluginExceptionWithoutContext:exception];
-            }
+                      NSNumber* key = [[FirebasePlugin firebasePlugin] saveAuthCredential:credential];
+                      NSString *idToken = gidUser.idToken.tokenString;
+                      NSMutableDictionary* result = [[NSMutableDictionary alloc] init];
+                      [result setValue:@"true" forKey:@"instantVerification"];
+                      [result setValue:key forKey:@"id"];
+                      [result setValue:idToken forKey:@"idToken"];
+                      pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:result];
+                  } else {
+                      pluginResult = [self createAuthErrorResult:error];
+                  }
+                  [[FirebasePlugin firebasePlugin].commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+              }@catch (NSException *exception) {
+                  [FirebasePlugin.firebasePlugin handlePluginExceptionWithoutContext:exception];
+              }
         }];
 
         [self sendPluginNoResultAndKeepCallback:command callbackId:command.callbackId];
@@ -1035,23 +1057,31 @@ static NSMutableDictionary* traces;
     }
 }
 
+- (bool)isSignedIn {
+    return [FIRAuth auth].currentUser ? true : false;
+}
+
+- (bool)userNotSignedInError:(CDVInvokedUrlCommand *)command {
+    bool isError = ![self isSignedIn];
+    if (isError) {
+        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                                 messageAsString:@"No user is currently signed"]
+                                    callbackId:command.callbackId];
+    }
+    return isError;
+}
+
 - (void)signOutUser:(CDVInvokedUrlCommand*)command {
     @try {
-        bool isSignedIn = [FIRAuth auth].currentUser ? true : false;
-        if(!isSignedIn){
-            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self getErrorDictionaryForString:@"No user is currently signed"]] callbackId:command.callbackId];
-
-            return;
-        }
+        if ([self userNotSignedInError:command]) return;
 
         // If signed in with Google
-        if([GIDSignIn.sharedInstance currentUser] != nil){
+        if ([GIDSignIn.sharedInstance currentUser] != nil){
             // Sign out of Google
-            [GIDSignIn.sharedInstance disconnectWithCallback:^(NSError * _Nullable error) {
+            [GIDSignIn.sharedInstance disconnectWithCompletion:^(NSError * _Nullable error) {
                 if (error) {
                     [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"Error signing out of Google: %@", error]] callbackId:command.callbackId];
                 }
-
                 [self signOutOfFirebase:command];
             }];
         }else{
@@ -2915,6 +2945,59 @@ static NSMutableDictionary* traces;
     NSNumber* key = [NSNumber numberWithInt:id];
     [authCredentials setObject:authCredential forKey:key];
     return key;
+}
+
+- (CDVPluginResult*) createAuthErrorResult:(NSError*) error{
+    CDVPluginResult* pluginResult;
+    if(error.code == FIRAuthErrorCodeSecondFactorRequired){
+        // The user is a multi-factor user. Second factor challenge is required.
+        multiFactorResolver = (FIRMultiFactorResolver*) error.userInfo[FIRAuthErrorUserInfoMultiFactorResolverKey];
+        NSMutableArray* secondFactors  = [self parseEnrolledSecondFactorsToJson:multiFactorResolver.hints];
+        NSString* errMessage = @"Second factor required";
+
+        NSMutableDictionary* result = [[NSMutableDictionary alloc] init];
+        [result setValue:errMessage forKey:@"errorMessage"];
+        [result setValue:secondFactors forKey:@"secondFactors"];
+
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:result];
+    }else if (error.code == FIRAuthErrorCodeCredentialAlreadyInUse){
+        NSMutableDictionary *userInfo = [NSMutableDictionary dictionaryWithDictionary:[error userInfo]];
+        FIROAuthCredential* updatedCredential = userInfo[FIRAuthErrorUserInfoUpdatedCredentialKey];
+        NSMutableDictionary *responseDict = [[NSMutableDictionary alloc] init];
+
+        [responseDict setValue:@(error.code) forKey:@"errorCode"];
+        [responseDict setValue:error.domain forKey:@"errorDomain"];
+        [responseDict setValue:userInfo.description forKey:@"errorDescription"];
+        if (userInfo[FIRAuthErrorUserInfoNameKey]) {
+            [responseDict setValue:userInfo[FIRAuthErrorUserInfoNameKey] forKey:FIRAuthErrorUserInfoNameKey];
+        }
+        if (userInfo[FIRAuthErrorUserInfoEmailKey]) {
+            [responseDict setValue:userInfo[FIRAuthErrorUserInfoEmailKey] forKey:FIRAuthErrorUserInfoEmailKey];
+        }
+        if (userInfo[FIRAuthErrorUserInfoNameKey]) {
+            [responseDict setValue:userInfo[FIRAuthErrorUserInfoNameKey] forKey:FIRAuthErrorUserInfoNameKey];
+        }
+
+        if (updatedCredential) {
+            NSMutableDictionary *updatedCredentialDict = [[NSMutableDictionary alloc] init];
+            if (updatedCredential.provider) {
+                [updatedCredentialDict setValue:updatedCredential.provider forKey:@"provider"];
+            }
+            if (updatedCredential.IDToken) {
+                [updatedCredentialDict setValue:updatedCredential.IDToken forKey:@"IDToken"];
+            }
+            NSNumber* key = [self saveAuthCredential:updatedCredential];
+            [updatedCredentialDict setValue:key forKey:@"id"];
+            [responseDict setValue:updatedCredentialDict forKey:@"updatedCredential"];
+        }
+
+        // TODO: Make messageAsDictionary work with error status- currently it returns undefined
+        NSString *jsonString = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:responseDict options:0 error:nil] encoding:NSUTF8StringEncoding];
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:jsonString];
+    } else {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.description];
+    }
+    return pluginResult;
 }
 
 - (int) generateId {
