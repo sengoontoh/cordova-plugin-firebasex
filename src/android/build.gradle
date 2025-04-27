@@ -2,14 +2,15 @@ buildscript {
     repositories {
         google()
         mavenCentral()
-        //jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.4.1'
-        classpath 'com.google.gms:google-services:4.3.3'
-        classpath 'com.google.firebase:firebase-crashlytics-gradle:2.7.1'
+        classpath 'com.android.tools.build:gradle:8.7.3' // Update for Cordova Android 14
+        // classpath 'com.google.gms:google-services:4.4.2' // Update for Cordova Android 14
+        classpath "com.google.firebase:firebase-crashlytics-gradle:2.8.1"
+
     }
 }
+
 repositories {
     mavenCentral()
     maven {
@@ -35,16 +36,14 @@ android {
     }
 }
 
-cdvPluginPostBuildExtras.add({
-    afterEvaluate {
-        rootProject.subprojects {
-            if (name == "app") {
-                if (!plugins.hasPlugin('com.google.gms.google-services')) {
-                    apply plugin: com.google.gms.googleservices.GoogleServicesPlugin
-                }
-            }
-        }
-    }
-})
-
-
+// cdvPluginPostBuildExtras.add({
+//     afterEvaluate {
+//         rootProject.subprojects {
+//             if (name == "app") {
+//                 if (!plugins.hasPlugin('com.google.gms.google-services')) {
+//                     apply plugin: com.google.gms.googleservices.GoogleServicesPlugin
+//                 }
+//             }
+//         }
+//     }
+// })
