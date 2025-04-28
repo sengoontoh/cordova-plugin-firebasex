@@ -25,7 +25,7 @@
 			<clobbers target="FirebasePlugin" />
 		</js-module>
 		<config-file target="config.xml" parent="/*">
-			<preference name="GradlePluginGoogleServicesEnabled" value="true" />
+			<preference name="GradlePluginGoogleServicesEnabled" value="false" />
 		</config-file>
 		<config-file parent="/*" target="res/xml/config.xml">
 			<feature name="FirebasePlugin">
