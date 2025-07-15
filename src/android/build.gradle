@@ -18,7 +18,14 @@ repositories {
     }
 }
 
-apply plugin: com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsPlugin
+if (project.plugins.hasPlugin('com.android.application')) {
+    try {
+        apply plugin: 'com.google.firebase.crashlytics'
+    } catch (Exception e) {
+        logger.lifecycle("Skipping Crashlytics plugin: ${e.message}")
+    }
+}
+
 android {
     buildTypes {
             debug {
