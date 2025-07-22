@@ -93,7 +93,9 @@ static bool isFirebaseInitialized = false;
         // Setup Functions
         [FirebasePlugin setFunctions:[FIRFunctions functions]];
         
-        [self setupAccessGroup];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+            [self setupAccessGroup];
+        });
 
         authStateChangeListener = [[FIRAuth auth] addAuthStateDidChangeListener:^(FIRAuth * _Nonnull auth, FIRUser * _Nullable user) {
             NSLog(@"Firebase SDK auth state changed. Current user ID: %@", user.uid);
@@ -140,7 +142,6 @@ static bool isFirebaseInitialized = false;
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application {
-    [self setupAccessGroup];
     self.applicationInBackground = @(NO);
     [FirebasePlugin.firebasePlugin _logMessage:@"Enter foreground"];
 }
