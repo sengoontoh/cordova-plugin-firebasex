@@ -93,12 +93,15 @@ static bool isFirebaseInitialized = false;
         // Setup Functions
         [FirebasePlugin setFunctions:[FIRFunctions functions]];
         
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.0 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
             [self setupAccessGroup];
         });
 
         authStateChangeListener = [[FIRAuth auth] addAuthStateDidChangeListener:^(FIRAuth * _Nonnull auth, FIRUser * _Nullable user) {
             NSLog(@"Firebase SDK auth state changed. Current user ID: %@", user.uid);
+            if (user == nil && ![self setupAccessGroup]) {
+                return;
+            }
             @try {
                 if (!authStateChangeListenerInitialized){
                     authStateChangeListenerInitialized = true;
@@ -117,14 +120,14 @@ static bool isFirebaseInitialized = false;
     return YES;
 }
 
-- (void)setupAccessGroup {
+- (bool)setupAccessGroup {
     if (!isFirebaseInitialized) {
         NSLog(@"****** Cannot setup UserAccessGroup. Firebase is not initialized yet.");
-        return;
+        return false;
     }
     if ([[FIRAuth auth] userAccessGroup] != NULL) {
         NSLog(@"****** Firebase access group already configured.");
-        return;
+        return true;
     }
     NSString *keychainAccessGroup = [self keychainAccessGroup];
     if (keychainAccessGroup) {
@@ -136,12 +139,15 @@ static bool isFirebaseInitialized = false;
         } else {
             NSLog(@"****** Stored user uid: %@", [storedUser uid]);
         }
+        return true;
     } else {
         NSLog(@"Can't get access group.");
+        return false;
     }
 }
 
 - (void)applicationDidBecomeActive:(UIApplication *)application {
+    [self setupAccessGroup];
     self.applicationInBackground = @(NO);
     [FirebasePlugin.firebasePlugin _logMessage:@"Enter foreground"];
 }
