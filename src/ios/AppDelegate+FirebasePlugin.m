@@ -25,6 +25,7 @@ static id <UNUserNotificationCenterDelegate> _previousDelegate;
 static NSDictionary* mutableUserInfo;
 static FIRAuthStateDidChangeListenerHandle authStateChangeListener;
 static bool authStateChangeListenerInitialized = false;
+static bool isFirebaseInitialized = false;
 
 + (void)load {
     Method original = class_getInstanceMethod(self, @selector(application:didFinishLaunchingWithOptions:));
@@ -45,22 +46,21 @@ static bool authStateChangeListenerInitialized = false;
 
     @try{
         instance = self;
-
-        bool isFirebaseInitializedWithPlist = false;
+        
         if(![FIRApp defaultApp]) {
             // get GoogleService-Info.plist file path
             NSString *filePath = [[NSBundle mainBundle] pathForResource:@"GoogleService-Info" ofType:@"plist"];
-
+            
             // if file is successfully found, use it
             if(filePath){
                 [FirebasePlugin.firebasePlugin _logMessage:@"GoogleService-Info.plist found, setup: [FIRApp configureWithOptions]"];
                 // create firebase configure options passing .plist as content
                 FIROptions *options = [[FIROptions alloc] initWithContentsOfFile:filePath];
-
+                
                 // configure FIRApp with options
                 [FIRApp configureWithOptions:options];
-
-                isFirebaseInitializedWithPlist = true;
+                
+                isFirebaseInitialized = true;
             }else{
                 // no .plist found, try default App
                 [FirebasePlugin.firebasePlugin _logError:@"GoogleService-Info.plist NOT FOUND, setup: [FIRApp defaultApp]"];
@@ -69,36 +69,39 @@ static bool authStateChangeListenerInitialized = false;
         }else{
             // Firebase SDK has already been initialised:
             // Assume that another call (probably from another plugin) did so with the plist
-            isFirebaseInitializedWithPlist = true;
+            isFirebaseInitialized = true;
         }
-
+        
+        NSLog(@"****** ApplicationDidFinishLaunchingWithOptions: FIRApp configured.");
+        
+        
         // Set UNUserNotificationCenter delegate
         if ([UNUserNotificationCenter currentNotificationCenter].delegate != nil) {
             _previousDelegate = [UNUserNotificationCenter currentNotificationCenter].delegate;
         }
         [UNUserNotificationCenter currentNotificationCenter].delegate = self;
-
+        
         // Set FCM messaging delegate
         [FIRMessaging messaging].delegate = self;
-
+        
         // Setup Firestore
         [FirebasePlugin setFirestore:[FIRFirestore firestore]];
-
+        
         // Setup Storage
         [FirebasePlugin setStorage:[FIRStorage storage]];
-
+        
         // Setup Functions
         [FirebasePlugin setFunctions:[FIRFunctions functions]];
-
-        // Migrate signed user to shared keychain
-        FIRUser *user = [FIRAuth auth].currentUser;
-        NSString *keychainAccessGroup = [self keychainAccessGroup];
-        [[FIRAuth auth] useUserAccessGroup:keychainAccessGroup error:nil];
-        if (user != nil) {
-            [[FIRAuth auth] updateCurrentUser:user completion:nil];
-        }
+        
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.0 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+            [self setupAccessGroup];
+        });
 
         authStateChangeListener = [[FIRAuth auth] addAuthStateDidChangeListener:^(FIRAuth * _Nonnull auth, FIRUser * _Nullable user) {
+            NSLog(@"Firebase SDK auth state changed. Current user ID: %@", user.uid);
+            if (user == nil && ![self setupAccessGroup]) {
+                return;
+            }
             @try {
                 if (!authStateChangeListenerInitialized){
                     authStateChangeListenerInitialized = true;
@@ -110,16 +113,41 @@ static bool authStateChangeListenerInitialized = false;
             }
         }];
 
-
         self.applicationInBackground = @(YES);
-
     } @catch (NSException *exception) {
         [FirebasePlugin.firebasePlugin handlePluginExceptionWithoutContext:exception];
     }
     return YES;
 }
 
+- (bool)setupAccessGroup {
+    if (!isFirebaseInitialized) {
+        NSLog(@"****** Cannot setup UserAccessGroup. Firebase is not initialized yet.");
+        return false;
+    }
+    if ([[FIRAuth auth] userAccessGroup] != NULL) {
+        NSLog(@"****** Firebase access group already configured.");
+        return true;
+    }
+    NSString *keychainAccessGroup = [self keychainAccessGroup];
+    if (keychainAccessGroup) {
+        [[FIRAuth auth] useUserAccessGroup:keychainAccessGroup error:nil];
+        NSError* error;
+        FIRUser *storedUser = [[FIRAuth auth] getStoredUserForAccessGroup:keychainAccessGroup error:&error];
+        if (error != nil) {
+            NSLog(@"****** getStoredUserForAccessGroup error: %@", error);
+        } else {
+            NSLog(@"****** Stored user uid: %@", [storedUser uid]);
+        }
+        return true;
+    } else {
+        NSLog(@"Can't get access group.");
+        return false;
+    }
+}
+
 - (void)applicationDidBecomeActive:(UIApplication *)application {
+    [self setupAccessGroup];
     self.applicationInBackground = @(NO);
     [FirebasePlugin.firebasePlugin _logMessage:@"Enter foreground"];
 }
