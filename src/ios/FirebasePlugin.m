@@ -951,9 +951,9 @@ static FIRMultiFactorResolver* multiFactorResolver;
 
         NSString *sharedKeychainAccessGroup = @"APU8L33GKN.com.huckleberry-labs.app";
         NSLog(@"[clearKeychainData] Using shared keychain group: %@", sharedKeychainAccessGroup);
-        
+
         [FIRAuth.auth useUserAccessGroup:sharedKeychainAccessGroup error:nil];
-        
+
         FIRUser *sharedUser = [[FIRAuth auth] currentUser];
         if (sharedUser) {
             NSLog(@"[clearKeychainData] Found user in shared keychain, clearing...");
@@ -965,7 +965,7 @@ static FIRMultiFactorResolver* multiFactorResolver;
         AppDelegate *AppDelegateInstance = [[AppDelegate alloc] init];
         NSString *defaultKeyChainAccessGroup = [AppDelegateInstance keychainAccessGroup];
         [FIRAuth.auth useUserAccessGroup:defaultKeyChainAccessGroup error:nil];
-      
+
         [self sendPluginSuccess:command];
     }@catch (NSException *exception) {
         NSLog(@"[clearKeychainData] Exception occurred: %@", exception);
@@ -1176,6 +1176,15 @@ static FIRMultiFactorResolver* multiFactorResolver;
     [userInfo setValue:user.photoURL ? user.photoURL.absoluteString : nil forKey:@"photoUrl"];
     [userInfo setValue:user.uid forKey:@"uid"];
     [userInfo setValue:@(user.isAnonymous ? true : false) forKey:@"isAnonymous"];
+
+    // Add creation time and last sign in time timestamps
+    if (user.metadata.creationDate) {
+        [userInfo setValue:@([user.metadata.creationDate timeIntervalSince1970] * 1000) forKey:@"creationTime"];
+    }
+    if (user.metadata.lastSignInDate) {
+        [userInfo setValue:@([user.metadata.lastSignInDate timeIntervalSince1970] * 1000) forKey:@"lastSignInTime"];
+    }
+
     NSMutableArray *providers=[NSMutableArray new];
     for (id<FIRUserInfo> item in user.providerData) {
       NSMutableDictionary* providerInfo = [NSMutableDictionary new];
