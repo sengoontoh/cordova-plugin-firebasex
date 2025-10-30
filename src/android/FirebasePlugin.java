@@ -1327,11 +1327,13 @@ public class FirebasePlugin extends CordovaPlugin {
         returnResults.put("isAnonymous", user.isAnonymous());
 
         // Add creation time and last sign in time timestamps
-        if (user.getMetadata().getCreationTimestamp() != null) {
-            returnResults.put("creationTime", user.getMetadata().getCreationTimestamp());
+        long creationTime = user.getMetadata().getCreationTimestamp();
+        if (creationTime > 0) {
+            returnResults.put("creationTime", creationTime);
         }
-        if (user.getMetadata().getLastSignInTimestamp() != null) {
-            returnResults.put("lastSignInTime", user.getMetadata().getLastSignInTimestamp());
+        long lastSignInTime = user.getMetadata().getLastSignInTimestamp();
+        if (lastSignInTime > 0) {
+            returnResults.put("lastSignInTime", lastSignInTime);
         }
 
         JSONArray providers = new JSONArray();
