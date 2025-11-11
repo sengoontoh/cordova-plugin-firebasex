@@ -1325,6 +1325,17 @@ public class FirebasePlugin extends CordovaPlugin {
         returnResults.put("photoUrl", user.getPhotoUrl() == null ? null : user.getPhotoUrl().toString());
         returnResults.put("uid", user.getUid());
         returnResults.put("isAnonymous", user.isAnonymous());
+
+        // Add creation time and last sign in time timestamps
+        long creationTime = user.getMetadata().getCreationTimestamp();
+        if (creationTime > 0) {
+            returnResults.put("creationTime", creationTime);
+        }
+        long lastSignInTime = user.getMetadata().getLastSignInTimestamp();
+        if (lastSignInTime > 0) {
+            returnResults.put("lastSignInTime", lastSignInTime);
+        }
+
         JSONArray providers = new JSONArray();
         for (UserInfo info : user.getProviderData()) {
             JSONObject providerInfo = new JSONObject();
